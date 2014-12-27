@@ -73,6 +73,9 @@ bool CVideoMode::SetVideoMode(int w, int h, int bpp, bool fullscreen)
 {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	Uint32 flags = 0;
+#if OS_ANDROID
+	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+#endif
 	if (fullscreen)
 		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
@@ -291,10 +294,12 @@ bool CVideoMode::InitSDL()
 	// (TODO: does that mean we need to call this when toggling fullscreen later?)
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+#if !OS_ANDROID
 	u16 ramp[256];
 	SDL_CalculateGammaRamp(g_Gamma, ramp);
 	if (SDL_SetWindowGammaRamp(m_Window, ramp, ramp, ramp) < 0)
 		LOGWARNING(L"SDL_SetWindowGammaRamp failed");
+#endif
 #else
 # if OS_MACOSX
 	// Workaround for crash on Mavericks, see http://trac.wildfiregames.com/ticket/2272
