@@ -32,6 +32,10 @@
 
 #include "lib/secure_crt.h"
 
+#if OS_ANDROID
+# include <boost/algorithm/string/replace.hpp>
+#endif
+
 // we were included from wsecure_crt.cpp; skip all stuff that
 // must only be done once.
 #ifndef WSECURE_CRT
@@ -127,6 +131,15 @@ size_t tnlen(const tchar* str, size_t max_len)
 }
 #endif // !OS_UNIX
 
+#if OS_ANDROID
+static std::wstring androidFormat(const tchar *fmt)
+{
+	std::wstring ret(fmt);
+	boost::algorithm::replace_all(ret, L"%ls", L"%S");
+	boost::algorithm::replace_all(ret, L"%hs", L"%s");
+	return std::move(ret);
+}
+#endif
 
 // copy at most <max_src_chars> (not including trailing null) from
 // <src> into <dst>, which must not overlap.
@@ -236,7 +249,12 @@ int tvsprintf_s(tchar* dst, size_t max_dst_chars, const tchar* fmt, va_list ap)
 		return -1;
 	}
 
+#if OS_ANDROID
+	memset(dst, 0, max_dst_chars * sizeof(tchar));
+	const int ret = tvsnprintf(dst, max_dst_chars, androidFormat(fmt).c_str(), ap);
+#else
 	const int ret = tvsnprintf(dst, max_dst_chars, fmt, ap);
+#endif
 	if(ret >= int(max_dst_chars))	// not enough space
 	{
 		dst[0] = '\0';

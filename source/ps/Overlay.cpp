@@ -48,7 +48,7 @@ bool CColor::ParseString(const CStr8& Value, int DefaultAlpha)
 		stream >> values[i];
 		if ((stream.rdstate() & std::stringstream::failbit) != 0)
 		{
-			LOGWARNING(L"Unable to parse CColor parameters. Your input: '%s'", Value.c_str());
+			LOGWARNING(L"Unable to parse CColor parameters. Your input: '%hs'", Value.c_str());
 			return false;
 		}
 		if (values[i] < 0 || values[i] > 255)
@@ -60,12 +60,12 @@ bool CColor::ParseString(const CStr8& Value, int DefaultAlpha)
 
 	if (i < 3)
 	{
-		LOGWARNING(L"Not enough parameters when parsing as CColor. Your input: '%s'", Value.c_str());
+		LOGWARNING(L"Not enough parameters when parsing as CColor. Your input: '%hs'", Value.c_str());
 		return false;
 	}
 	if (!stream.eof())
 	{
-		LOGWARNING(L"Too many parameters when parsing as CColor. Your input: '%s'", Value.c_str());
+		LOGWARNING(L"Too many parameters when parsing as CColor. Your input: '%hs'", Value.c_str());
 		return false;
 	}
 
