@@ -29,7 +29,11 @@
 
 int sys_vswprintf(wchar_t* buffer, size_t count, const wchar_t* format, va_list argptr)
 {
+#if OS_ANDROID
+	int ret = vswprintf_s(buffer, count, format, argptr);
+#else
 	int ret = vswprintf(buffer, count, format, argptr);
+#endif
 
 	// Guarantee the buffer is null terminated on error
 	if (ret < 0 && count > 0)
