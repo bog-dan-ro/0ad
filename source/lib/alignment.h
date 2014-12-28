@@ -18,6 +18,18 @@ inline size_t Align(size_t n)
 }
 
 
+template<typename T>
+inline T readUnaligned(const void *ptr)
+{
+#if ARCH_ARM
+	T ret;
+	memcpy(&ret, ptr, sizeof(T));
+	return ret;
+#else
+	return *(T*)(ptr);
+#endif
+}
+
 // bridge the differences between MSC and GCC alignment definitions.
 // example: ALIGNED(int, 8) myAlignedVariable = 0;
 #if MSC_VERSION

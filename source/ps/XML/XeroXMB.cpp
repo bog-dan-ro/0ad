@@ -41,7 +41,7 @@ bool XMBFile::Initialise(const char* FileData)
 		return false;
 	ENSURE(!strcmp(Header, HeaderMagicStr) && "Invalid XMB header!");
 
-	u32 Version = *(u32*)m_Pointer;
+	u32 Version = readUnaligned<u32>(m_Pointer);
 	m_Pointer += 4;
 	if (Version != XMBVersion)
 		return false;
@@ -55,25 +55,25 @@ bool XMBFile::Initialise(const char* FileData)
 
 #ifdef XERO_USEMAP
 	// Build a std::map of all the names->ids
-	u32 ElementNameCount = *(u32*)m_Pointer; m_Pointer += 4;
+	u32 ElementNameCount = readUnAligned<u32>(m_Pointer); m_Pointer += 4;
 	for (i = 0; i < ElementNameCount; ++i)
 		m_ElementNames[ReadZStr8()] = i;
 
-	u32 AttributeNameCount = *(u32*)m_Pointer; m_Pointer += 4;
+	u32 AttributeNameCount = readUnAligned<u32>(m_Pointer); m_Pointer += 4;
 	for (i = 0; i < AttributeNameCount; ++i)
 		m_AttributeNames[ReadZStr8()] = i;
 #else
 	// Ignore all the names for now, and skip over them
 	// (remembering the position of the first)
-	m_ElementNameCount = *(int*)m_Pointer; m_Pointer += 4;
+	m_ElementNameCount = readUnaligned<int>(m_Pointer); m_Pointer += 4;
 	m_ElementPointer = m_Pointer;
 	for (i = 0; i < m_ElementNameCount; ++i)
-		m_Pointer += 4 + *(int*)m_Pointer; // skip over the string
+		m_Pointer += 4 + readUnaligned<int>(m_Pointer); // skip over the string
 
-	m_AttributeNameCount = *(int*)m_Pointer; m_Pointer += 4;
+	m_AttributeNameCount = readUnaligned<int>(m_Pointer); m_Pointer += 4;
 	m_AttributePointer = m_Pointer;
 	for (i = 0; i < m_AttributeNameCount; ++i)
-		m_Pointer += 4 + *(int*)m_Pointer; // skip over the string
+		m_Pointer += 4 + readUnaligned<int>(m_Pointer); // skip over the string
 #endif
 
 	return true;	// success
@@ -81,7 +81,7 @@ bool XMBFile::Initialise(const char* FileData)
 
 std::string XMBFile::ReadZStr8()
 {
-	int Length = *(int*)m_Pointer;
+	int Length = readUnaligned<int>(m_Pointer);
 	m_Pointer += 4;
 	std::string String (m_Pointer); // reads up until the first NULL
 	m_Pointer += Length;
@@ -119,10 +119,10 @@ int XMBFile::GetElementID(const char* Name) const
 	{
 		// See if this could be the right string, checking its
 		// length and then its contents
-		if (*(int*)Pos == len && strncasecmp(Pos+4, Name, len) == 0)
+		if (readUnaligned<int>(Pos) == len && strncasecmp(Pos+4, Name, len) == 0)
 			return i;
 		// If not, jump to the next string
-		Pos += 4 + *(int*)Pos;
+		Pos += 4 + readUnaligned<int>(Pos);
 	}
 	// Failed
 	return -1;
@@ -139,10 +139,10 @@ int XMBFile::GetAttributeID(const char* Name) const
 	{
 		// See if this could be the right string, checking its
 		// length and then its contents
-		if (*(int*)Pos == len && strncasecmp(Pos+4, Name, len) == 0)
+		if (readUnaligned<int>(Pos) == len && strncasecmp(Pos+4, Name, len) == 0)
 			return i;
 		// If not, jump to the next string
-		Pos += 4 + *(int*)Pos;
+		Pos += 4 + readUnaligned<int>(Pos);
 	}
 	// Failed
 	return -1;
@@ -156,7 +156,7 @@ std::string XMBFile::GetElementString(const int ID) const
 {
 	const char* Pos = m_ElementPointer;
 	for (int i = 0; i < ID; ++i)
-		Pos += 4 + *(int*)Pos;
+		Pos += 4 + readUnaligned<int>(Pos);
 	return std::string(Pos+4);
 }
 
@@ -164,7 +164,7 @@ std::string XMBFile::GetAttributeString(const int ID) const
 {
 	const char* Pos = m_AttributePointer;
 	for (int i = 0; i < ID; ++i)
-		Pos += 4 + *(int*)Pos;
+		Pos += 4 + readUnaligned<int>(Pos);
 	return std::string(Pos+4);
 }
 
@@ -175,7 +175,7 @@ int XMBElement::GetNodeName() const
 	if (m_Pointer == NULL)
 		return -1;
 
-	return *(int*)(m_Pointer + 4); // == ElementName
+	return readUnaligned<int>(m_Pointer + 4); // == ElementName
 }
 
 XMBElementList XMBElement::GetChildNodes() const
@@ -184,8 +184,8 @@ XMBElementList XMBElement::GetChildNodes() const
 		return XMBElementList(NULL, 0);
 
 	return XMBElementList(
-		m_Pointer + 20 + *(int*)(m_Pointer + 16), // == Children[]
-		*(int*)(m_Pointer + 12) // == ChildCount
+		m_Pointer + 20 + readUnaligned<int>(m_Pointer + 16), // == Children[]
+		readUnaligned<int>(m_Pointer + 12) // == ChildCount
 	);
 }
 
@@ -195,15 +195,15 @@ XMBAttributeList XMBElement::GetAttributes() const
 		return XMBAttributeList(NULL, 0);
 
 	return XMBAttributeList(
-		m_Pointer + 24 + *(int*)(m_Pointer + 20), // == Attributes[]
-		*(int*)(m_Pointer + 8) // == AttributeCount
+		m_Pointer + 24 + readUnaligned<int>(m_Pointer + 20), // == Attributes[]
+		readUnaligned<int>(m_Pointer + 8) // == AttributeCount
 	);
 }
 
 CStr8 XMBElement::GetText() const
 {
 	// Return empty string if there's no text
-	if (m_Pointer == NULL || *(int*)(m_Pointer + 20) == 0)
+	if (m_Pointer == NULL || readUnaligned<int>(m_Pointer + 20) == 0)
 		return CStr8();
 
 	return CStr8(m_Pointer + 28);
@@ -212,10 +212,10 @@ CStr8 XMBElement::GetText() const
 int XMBElement::GetLineNumber() const
 {
 	// Make sure there actually was some text to record the line of
-	if (m_Pointer == NULL || *(int*)(m_Pointer + 20) == 0)
+	if (m_Pointer == NULL || readUnaligned<int>(m_Pointer + 20) == 0)
 		return -1;
 	else
-		return *(int*)(m_Pointer + 24);
+		return readUnaligned<int>(m_Pointer + 24);
 }
 
 XMBElement XMBElementList::GetFirstNamedItem(const int ElementName) const
@@ -226,8 +226,8 @@ XMBElement XMBElementList::GetFirstNamedItem(const int ElementName) const
 	// fast enough with half a dozen attributes:
 	for (int i = 0; i < Count; ++i)
 	{
-		int Length = *(int*)Pos;
-		int Name = *(int*)(Pos+4);
+		int Length = readUnaligned<int>(Pos);
+		int Name = readUnaligned<int>(Pos+4);
 		if (Name == ElementName)
 			return XMBElement(Pos);
 		Pos += Length;
@@ -247,14 +247,14 @@ XMBElement XMBElementList::Item(const int id)
 	if (id == m_LastItemID+1)
 	{
 		Pos = m_LastPointer;
-		Pos += *(int*)Pos; // skip over the last node
+		Pos += readUnaligned<int>(Pos); // skip over the last node
 	}
 	else
 	{
 		Pos = m_Pointer;
 		// Skip over each preceding node
 		for (int i=0; i<id; ++i)
-			Pos += *(int*)Pos;
+			Pos += readUnaligned<int>(Pos);
 	}
 	// Cache information about this node
 	m_LastItemID = id;
@@ -271,9 +271,9 @@ CStr8 XMBAttributeList::GetNamedItem(const int AttributeName) const
 	// fast enough with half a dozen attributes:
 	for (int i = 0; i < Count; ++i)
 	{
-		if (*(int*)Pos == AttributeName)
+		if (readUnaligned<int>(Pos) == AttributeName)
 			return CStr8(Pos+8);
-		Pos += 8 + *(int*)(Pos+4); // Skip over the string
+		Pos += 8 + readUnaligned<int>(Pos+4); // Skip over the string
 	}
 
 	// Can't find attribute
@@ -291,18 +291,18 @@ XMBAttribute XMBAttributeList::Item(const int id)
 	{
 		Pos = m_LastPointer;
 		// Skip over the last attribute
-		Pos += 8 + *(int*)(Pos+4);
+		Pos += 8 + readUnaligned<int>(Pos+4);
 	}
 	else
 	{
 		Pos = m_Pointer;
 		// Skip over each preceding attribute
 		for (int i=0; i<id; ++i)
-			Pos += 8 + *(int*)(Pos+4); // skip ID, length, and string data
+			Pos += 8 + readUnaligned<int>(Pos+4); // skip ID, length, and string data
 	}
 	// Cache information about this attribute
 	m_LastItemID = id;
 	m_LastPointer = Pos;
 
-	return XMBAttribute(*(int*)Pos, CStr8(Pos+8));
+	return XMBAttribute(readUnaligned<int>(Pos), CStr8(Pos+8));
 }
