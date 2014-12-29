@@ -1,6 +1,5 @@
 package org.libsdl.app;
 
-import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,7 +14,6 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsoluteLayout;
-import android.net.*;
 import android.os.*;
 import android.util.Log;
 import android.graphics.*;
@@ -39,7 +37,7 @@ public class SDLActivity extends Activity {
     protected static View mTextEdit;
     protected static ViewGroup mLayout;
     protected static SDLJoystickHandler mJoystickHandler;
-
+    protected static float scaleRatio = 1.0f;
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
     
@@ -92,8 +90,8 @@ public class SDLActivity extends Activity {
         }
 
         mLayout = new AbsoluteLayout(this);
-        mLayout.addView(mSurface);
-
+        AbsoluteLayout.LayoutParams params = new AbsoluteLayout.LayoutParams(AbsoluteLayout.LayoutParams.MATCH_PARENT, AbsoluteLayout.LayoutParams.MATCH_PARENT, 0, 0);
+        mLayout.addView(mSurface, params);
         setContentView(mLayout);
     }
 
@@ -547,8 +545,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         }
 
         // Some arbitrary defaults to avoid a potential division by zero
-        mWidth = 1.0f;
-        mHeight = 1.0f;
+        mWidth = SDLActivity.scaleRatio;
+        mHeight = SDLActivity.scaleRatio;
     }
     
     public Surface getNativeSurface() {
@@ -558,8 +556,10 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     // Called when we have a valid drawing surface
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.v("SDL", "surfaceCreated()");
+        Log.v("SDL", "surfaceCreated() w=" + getWidth() + " h=" + getHeight());
         holder.setType(SurfaceHolder.SURFACE_TYPE_GPU);
+        if (SDLActivity.scaleRatio != 1.0)
+            holder.setFixedSize((int) (getWidth() * SDLActivity.scaleRatio), (int) (getHeight() * SDLActivity.scaleRatio));
     }
 
     // Called when we lose the surface
@@ -623,8 +623,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             break;
         }
 
-        mWidth = width;
-        mHeight = height;
+        mWidth = width / SDLActivity.scaleRatio;
+        mHeight = height / SDLActivity.scaleRatio;
         SDLActivity.onNativeResize(width, height, sdlFormat);
         Log.v("SDL", "Window size:" + width + "x"+height);
 

@@ -70,6 +70,9 @@ public class Activity extends SDLActivity {
             w = metrics.heightPixels;
             h = metrics.widthPixels;
         }
+        scaleRatio = 0.5f;
+        w *= scaleRatio;
+        h *= scaleRatio;
         Native.setenv("ANDROID_SCREEN_WIDTH", Integer.toString(w), true);
         Native.setenv("ANDROID_SCREEN_HEIGHT", Integer.toString(h), true);
 
