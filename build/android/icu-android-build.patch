@@ -1,0 +1,22 @@
+--- Makefile_orig.in	2013-05-23 23:06:32.000000000 +0300
++++ Makefile.in	2014-12-25 10:16:54.000000000 +0200
+@@ -35,6 +35,10 @@
+ @TESTS_TRUE@TEST = test
+ @SAMPLES_TRUE@SAMPLE = samples
+ 
++ifeq ($(cross_buildroot),$(top_builddir))
++TOOLS= tools
++endif
++
+ ## pkgconfig setup. Always have uc and i18n. Others are optional.
+ ALL_PKGCONFIG_SUFFIX=uc i18n
+ @LAYOUT_TRUE@ALL_PKGCONFIG_SUFFIX+= le lx
+@@ -55,7 +59,7 @@
+ LOCAL_BUILT_FILES = icudefs.mk config/icucross.mk config/icucross.inc
+ 
+ DOCDIRS = common i18n
+-SUBDIRS =  stubdata common i18n $(LAYOUT) tools data $(ICUIO) $(EXTRA) $(SAMPLE) $(TEST)
++SUBDIRS =  stubdata common i18n $(LAYOUT) $(TOOLS) data $(ICUIO) $(EXTRA) $(SAMPLE) $(TEST)
+ 
+ SECTION = 1
+ 
