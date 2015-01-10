@@ -525,14 +525,22 @@ static void RunGameOrAtlas(int argc, const char* argv[])
 }
 
 #if OS_ANDROID
-// In Android we compile the engine as a shared library, not an executable,
-// so rename main() to a different symbol that the wrapper library can load
-#undef main
-#define main pyrogenesis_main
-extern "C" __attribute__((visibility ("default"))) int main(int argc, char* argv[]);
-#endif
+#include <jni.h>
+extern"C" JNIEXPORT jint JNICALL Java_com_play0ad_Native_setenv
+  (JNIEnv* env, jclass /*clazz*/, jstring key, jstring value, jboolean overwrite)
+{
+	const char *k = env->GetStringUTFChars(key, NULL);
+	const char *v = env->GetStringUTFChars(value, NULL);
+	int err = setenv(k, v, overwrite);
+	env->ReleaseStringUTFChars(key, k);
+	env->ReleaseStringUTFChars(value, v);
+	return err;
+}
 
+extern "C" __attribute__((visibility ("default"))) int SDL_main(int argc, char* argv[])
+#else
 extern "C" int main(int argc, char* argv[])
+#endif
 {
 #if OS_UNIX
 	// Don't allow people to run the game with root permissions,

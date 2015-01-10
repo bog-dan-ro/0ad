@@ -42,7 +42,9 @@
 #include <boost/flyweight/no_locking.hpp>
 #include <boost/flyweight/no_tracking.hpp>
 
-#include "valgrind.h"
+#if !OS_ANDROID
+# include "valgrind.h"
+#endif
 
 #include "scriptinterface/ScriptExtraHeaders.h"
 

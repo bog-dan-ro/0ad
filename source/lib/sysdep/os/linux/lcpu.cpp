@@ -27,8 +27,8 @@
 #include "lib/bits.h"
 #include "lib/module_init.h"
 
-#if OS_LINUX
-#include "valgrind.h"
+#if OS_LINUX && !OS_ANDROID
+# include "valgrind.h"
 #endif
 
 
@@ -41,9 +41,11 @@ size_t os_cpu_NumProcessors()
 		// Valgrind reports the number of real CPUs, but only emulates a single CPU.
 		// That causes problems when we expect all those CPUs to be distinct, so
 		// just pretend there's only one CPU
+#if !OS_ANDROID
 		if (RUNNING_ON_VALGRIND)
 			numProcessors = 1;
 		else
+#endif
 		{
 			long res = sysconf(_SC_NPROCESSORS_CONF);
 			ENSURE(res != -1);
