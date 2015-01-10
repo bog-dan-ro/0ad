@@ -433,7 +433,7 @@ void IGUIObject::RegisterScriptHandler(const CStr& Action, const CStr& Code, CGU
 	// Generate a unique name
 	static int x=0;
 	char buf[64];
-	sprintf_s(buf, ARRAY_SIZE(buf), "__eventhandler%d (%s)", x++, Action.c_str());
+	snprintf(buf, ARRAY_SIZE(buf), "__eventhandler%d (%s)", x++, Action.c_str());
 
 	JS::RootedFunction func(cx, JS_CompileFunction(cx, globalObj,
 		buf, paramCount, paramNames, Code.c_str(), Code.length(), CodeName.c_str(), 0));

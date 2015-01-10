@@ -205,7 +205,7 @@ void* CNetServerWorker::SetupUPnP(void*)
 {
 	// Values we want to set.
 	char psPort[6];
-	sprintf_s(psPort, ARRAY_SIZE(psPort), "%d", PS_DEFAULT_PORT);
+	snprintf(psPort, ARRAY_SIZE(psPort), "%d", PS_DEFAULT_PORT);
 	const char* leaseDuration = "0"; // Indefinite/permanent lease duration.
 	const char* description = "0AD Multiplayer";
 	const char* protocall = "UDP";

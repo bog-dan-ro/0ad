@@ -116,7 +116,7 @@ CStr CProfileNodeTable::GetName()
 CStr CProfileNodeTable::GetTitle()
 {
 	char buf[512];
-	sprintf_s(buf, ARRAY_SIZE(buf), "Profiling Information for: %s (Time in node: %.3f msec/frame)", node->GetName(), node->GetFrameTime() * 1000.0f );
+	snprintf(buf, ARRAY_SIZE(buf), "Profiling Information for: %s (Time in node: %.3f msec/frame)", node->GetName(), node->GetFrameTime() * 1000.0f );
 	return buf;
 }
 
@@ -186,13 +186,13 @@ CStr CProfileNodeTable::GetCellText(size_t row, size_t col)
 		}
 
 		if (col == 2)
-			sprintf_s(buf, ARRAY_SIZE(buf), "%.3f", unlogged_time_frame * 1000.0f);
+			snprintf(buf, ARRAY_SIZE(buf), "%.3f", unlogged_time_frame * 1000.0f);
 		else if (col == 3)
-			sprintf_s(buf, ARRAY_SIZE(buf), "%.1f", unlogged_mallocs_frame);
+			snprintf(buf, ARRAY_SIZE(buf), "%.1f", unlogged_mallocs_frame);
 		else if (col == 5)
-			sprintf_s(buf, ARRAY_SIZE(buf), "%.3f", unlogged_time_turn * 1000.f);
+			snprintf(buf, ARRAY_SIZE(buf), "%.3f", unlogged_time_turn * 1000.f);
 		else if (col == 6)
-			sprintf_s(buf, ARRAY_SIZE(buf), "%.1f", unlogged_mallocs_turn);
+			snprintf(buf, ARRAY_SIZE(buf), "%.1f", unlogged_mallocs_turn);
 		
 		return CStr(buf);
 	}
@@ -204,22 +204,22 @@ CStr CProfileNodeTable::GetCellText(size_t row, size_t col)
 		return child->GetName();
 		
 	case 1:
-		sprintf_s(buf, ARRAY_SIZE(buf), "%.1f", child->GetFrameCalls());
+		snprintf(buf, ARRAY_SIZE(buf), "%.1f", child->GetFrameCalls());
 		break;
 	case 2:
-		sprintf_s(buf, ARRAY_SIZE(buf), "%.3f", child->GetFrameTime() * 1000.0f);
+		snprintf(buf, ARRAY_SIZE(buf), "%.3f", child->GetFrameTime() * 1000.0f);
 		break;
 	case 3:
-		sprintf_s(buf, ARRAY_SIZE(buf), "%.1f", child->GetFrameMallocs());
+		snprintf(buf, ARRAY_SIZE(buf), "%.1f", child->GetFrameMallocs());
 		break;
 	case 4:
-		sprintf_s(buf, ARRAY_SIZE(buf), "%.1f", child->GetTurnCalls());
+		snprintf(buf, ARRAY_SIZE(buf), "%.1f", child->GetTurnCalls());
 		break;
 	case 5:
-		sprintf_s(buf, ARRAY_SIZE(buf), "%.3f", child->GetTurnTime() * 1000.0f);
+		snprintf(buf, ARRAY_SIZE(buf), "%.3f", child->GetTurnTime() * 1000.0f);
 		break;
 	case 6:
-		sprintf_s(buf, ARRAY_SIZE(buf), "%.1f", child->GetTurnMallocs());
+		snprintf(buf, ARRAY_SIZE(buf), "%.1f", child->GetTurnMallocs());
 		break;
 	}
 	return CStr(buf);

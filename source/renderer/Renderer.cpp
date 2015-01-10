@@ -169,67 +169,67 @@ CStr CRendererStatsTable::GetCellText(size_t row, size_t col)
 	case Row_DrawCalls:
 		if (col == 0)
 			return "# draw calls";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_DrawCalls);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_DrawCalls);
 		return buf;
 
 	case Row_TerrainTris:
 		if (col == 0)
 			return "# terrain tris";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_TerrainTris);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_TerrainTris);
 		return buf;
 
 	case Row_WaterTris:
 		if (col == 0)
 			return "# water tris";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_WaterTris);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_WaterTris);
 		return buf;
 
 	case Row_ModelTris:
 		if (col == 0)
 			return "# model tris";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_ModelTris);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_ModelTris);
 		return buf;
 
 	case Row_OverlayTris:
 		if (col == 0)
 			return "# overlay tris";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_OverlayTris);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_OverlayTris);
 		return buf;
 
 	case Row_BlendSplats:
 		if (col == 0)
 			return "# blend splats";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_BlendSplats);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_BlendSplats);
 		return buf;
 
 	case Row_Particles:
 		if (col == 0)
 			return "# particles";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_Particles);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)Stats.m_Particles);
 		return buf;
 
 	case Row_VBReserved:
 		if (col == 0)
 			return "VB reserved";
-		sprintf_s(buf, sizeof(buf), "%lu kB", (unsigned long)g_VBMan.GetBytesReserved() / 1024);
+		snprintf(buf, sizeof(buf), "%lu kB", (unsigned long)g_VBMan.GetBytesReserved() / 1024);
 		return buf;
 
 	case Row_VBAllocated:
 		if (col == 0)
 			return "VB allocated";
-		sprintf_s(buf, sizeof(buf), "%lu kB", (unsigned long)g_VBMan.GetBytesAllocated() / 1024);
+		snprintf(buf, sizeof(buf), "%lu kB", (unsigned long)g_VBMan.GetBytesAllocated() / 1024);
 		return buf;
 
 	case Row_TextureMemory:
 		if (col == 0)
 			return "textures uploaded";
-		sprintf_s(buf, sizeof(buf), "%lu kB", (unsigned long)g_Renderer.GetTextureManager().GetBytesUploaded() / 1024);
+		snprintf(buf, sizeof(buf), "%lu kB", (unsigned long)g_Renderer.GetTextureManager().GetBytesUploaded() / 1024);
 		return buf;
 
 	case Row_ShadersLoaded:
 		if (col == 0)
 			return "shader effects loaded";
-		sprintf_s(buf, sizeof(buf), "%lu", (unsigned long)g_Renderer.GetShaderManager().GetNumEffectsLoaded());
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long)g_Renderer.GetShaderManager().GetNumEffectsLoaded());
 		return buf;
 
 	default:

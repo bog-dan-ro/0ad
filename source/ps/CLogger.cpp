@@ -116,14 +116,14 @@ void CLogger::Init()
 CLogger::~CLogger()
 {
 	char buffer[128];
-	sprintf_s(buffer, ARRAY_SIZE(buffer), " with %d message(s), %d error(s) and %d warning(s).", m_NumberOfMessages,m_NumberOfErrors,m_NumberOfWarnings);
+	snprintf(buffer, ARRAY_SIZE(buffer), " with %d message(s), %d error(s) and %d warning(s).", m_NumberOfMessages,m_NumberOfErrors,m_NumberOfWarnings);
 
 	time_t t = time(NULL);
 	struct tm* now = localtime(&t);
 	char currentDate[17];
-	sprintf_s(currentDate, ARRAY_SIZE(currentDate), "%04d-%02d-%02d", 1900+now->tm_year, 1+now->tm_mon, now->tm_mday);
+	snprintf(currentDate, ARRAY_SIZE(currentDate), "%04d-%02d-%02d", 1900+now->tm_year, 1+now->tm_mon, now->tm_mday);
 	char currentTime[10];
-	sprintf_s(currentTime, ARRAY_SIZE(currentTime), "%02d:%02d:%02d", now->tm_hour, now->tm_min, now->tm_sec);
+	snprintf(currentTime, ARRAY_SIZE(currentTime), "%02d:%02d:%02d", now->tm_hour, now->tm_min, now->tm_sec);
 
 	//Write closing text
 

@@ -33,7 +33,7 @@ CStr ps_generate_guid(void)
 		u32 r = 0;
 		sys_generate_random_bytes((u8*)&r, sizeof(r));
 		char buf[32];
-		sprintf_s(buf, ARRAY_SIZE(buf), "%08X", r);
+		snprintf(buf, ARRAY_SIZE(buf), "%08X", r);
 		guid += buf;
 	}
 
