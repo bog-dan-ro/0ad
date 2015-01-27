@@ -40,14 +40,14 @@
 
 
 static const StatusDefinition texStatusDefinitions[] = {
-	{ ERR::TEX_FMT_INVALID, L"Invalid/unsupported texture format" },
-	{ ERR::TEX_INVALID_COLOR_TYPE, L"Invalid color type" },
-	{ ERR::TEX_NOT_8BIT_PRECISION, L"Not 8-bit channel precision" },
-	{ ERR::TEX_INVALID_LAYOUT, L"Unsupported texel layout, e.g. right-to-left" },
-	{ ERR::TEX_COMPRESSED, L"Unsupported texture compression" },
-	{ WARN::TEX_INVALID_DATA, L"Warning: invalid texel data encountered" },
-	{ ERR::TEX_INVALID_SIZE, L"Texture size is incorrect" },
-	{ INFO::TEX_CODEC_CANNOT_HANDLE, L"Texture codec cannot handle the given format" }
+	{ ERR::TEX_FMT_INVALID, L"Invalid/unsupported texture format", 0 },
+	{ ERR::TEX_INVALID_COLOR_TYPE, L"Invalid color type", 0 },
+	{ ERR::TEX_NOT_8BIT_PRECISION, L"Not 8-bit channel precision", 0 },
+	{ ERR::TEX_INVALID_LAYOUT, L"Unsupported texel layout, e.g. right-to-left", 0 },
+	{ ERR::TEX_COMPRESSED, L"Unsupported texture compression", 0 },
+	{ WARN::TEX_INVALID_DATA, L"Warning: invalid texel data encountered", 0 },
+	{ ERR::TEX_INVALID_SIZE, L"Texture size is incorrect", 0 },
+	{ INFO::TEX_CODEC_CANNOT_HANDLE, L"Texture codec cannot handle the given format", 0 }
 };
 STATUS_ADD_DEFINITIONS(texStatusDefinitions);
 

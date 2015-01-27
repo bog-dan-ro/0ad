@@ -31,10 +31,10 @@
 #include <cerrno>
 
 static const StatusDefinition pathStatusDefinitions[] = {
-	{ ERR::PATH_CHARACTER_ILLEGAL, L"illegal path character" },
-	{ ERR::PATH_CHARACTER_UNSAFE, L"unsafe path character" },
-	{ ERR::PATH_NOT_FOUND, L"path not found" },
-	{ ERR::PATH_MIXED_SEPARATORS, L"path contains both slash and backslash separators" }
+	{ ERR::PATH_CHARACTER_ILLEGAL, L"illegal path character", 0 },
+	{ ERR::PATH_CHARACTER_UNSAFE, L"unsafe path character", 0 },
+	{ ERR::PATH_NOT_FOUND, L"path not found", 0 },
+	{ ERR::PATH_MIXED_SEPARATORS, L"path contains both slash and backslash separators", 0 }
 };
 STATUS_ADD_DEFINITIONS(pathStatusDefinitions);
 

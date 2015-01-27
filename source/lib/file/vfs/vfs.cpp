@@ -36,9 +36,9 @@
 #include "lib/file/vfs/file_cache.h"
 
 static const StatusDefinition vfsStatusDefinitions[] = {
-	{ ERR::VFS_DIR_NOT_FOUND, L"VFS directory not found" },
-	{ ERR::VFS_FILE_NOT_FOUND, L"VFS file not found" },
-	{ ERR::VFS_ALREADY_MOUNTED, L"VFS path already mounted" }
+	{ ERR::VFS_DIR_NOT_FOUND, L"VFS directory not found", 0 },
+	{ ERR::VFS_FILE_NOT_FOUND, L"VFS file not found", 0 },
+	{ ERR::VFS_ALREADY_MOUNTED, L"VFS path already mounted", 0 }
 };
 STATUS_ADD_DEFINITIONS(vfsStatusDefinitions);
 
