@@ -57,7 +57,12 @@ float g_Gamma = 1.0f;
 CStr g_RenderPath = "default";
 
 int g_xres, g_yres;
+#if OS_ANDROID
+#warning FIXME HACK, Andriod has enough info to compute this variable
+float g_GuiScale = 0.5f;
+#else
 float g_GuiScale = 1.0f;
+#endif
 bool g_VSync = false;
 
 bool g_Quickstart = false;
