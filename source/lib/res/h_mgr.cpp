@@ -49,11 +49,11 @@ static const Status H_TYPE_MISMATCH = -120004;
 static const Status H_ALREADY_FREED = -120005;
 }
 static const StatusDefinition hStatusDefinitions[] = {
-	{ ERR::H_IDX_INVALID,   L"Handle index completely out of bounds" },
-	{ ERR::H_IDX_UNUSED,    L"Handle index exceeds high-water mark" },
-	{ ERR::H_TAG_MISMATCH,  L"Handle tag mismatch (stale reference?)" },
-	{ ERR::H_TYPE_MISMATCH, L"Handle type mismatch" },
-	{ ERR::H_ALREADY_FREED, L"Handle already freed" }
+	{ ERR::H_IDX_INVALID,   L"Handle index completely out of bounds", 0 },
+	{ ERR::H_IDX_UNUSED,    L"Handle index exceeds high-water mark", 0 },
+	{ ERR::H_TAG_MISMATCH,  L"Handle tag mismatch (stale reference?)", 0 },
+	{ ERR::H_TYPE_MISMATCH, L"Handle type mismatch", 0 },
+	{ ERR::H_ALREADY_FREED, L"Handle already freed", 0 }
 };
 STATUS_ADD_DEFINITIONS(hStatusDefinitions);
 

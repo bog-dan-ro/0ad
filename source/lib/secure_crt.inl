@@ -40,7 +40,7 @@
 // must only be done once.
 #ifndef WSECURE_CRT
 static const StatusDefinition secureCrtStatusDefinitions[] = {
-	{ ERR::STRING_NOT_TERMINATED, L"Invalid string (no 0 terminator found in buffer)" }
+        { ERR::STRING_NOT_TERMINATED, L"Invalid string (no 0 terminator found in buffer)", 0 }
 };
 STATUS_ADD_DEFINITIONS(secureCrtStatusDefinitions);
 #endif
