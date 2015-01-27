@@ -25,8 +25,14 @@
 #include "lib/sysdep/sysdep.h"
 
 #define GNU_SOURCE
-#include "mocks/dlfcn.h"
-#include "mocks/unistd.h"
+#if OS_ANDROID
+# include <dlfcn.h>
+# include <unistd.h>
+#define T
+#else
+# include "mocks/dlfcn.h"
+# include "mocks/unistd.h"
+#endif
 
 #include <cstdio>
 

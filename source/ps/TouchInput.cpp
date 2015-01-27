@@ -113,6 +113,9 @@ void CTouchInput::OnFingerUp(int id, int x, int y)
 
 void CTouchInput::OnFingerMotion(int id, int x, int y)
 {
+	if (!g_Game)
+		return;
+
 	debug_printf("finger motion %d %d %d; state %d\n", id, x, y, m_State);
 
 	CVector2D pos(x, y);
