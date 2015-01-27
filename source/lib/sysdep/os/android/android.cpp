@@ -46,13 +46,11 @@ namespace gfx {
 
 Status GetVideoMode(int* xres, int* yres, int* bpp, int* freq)
 {
-#warning TODO: implement gfx::GetVideoMode properly for Android
-
 	if(xres)
-		*xres = 800;
+		*xres = atoi(getenv("ANDROID_SCREEN_WIDTH"));
 
 	if(yres)
-		*yres = 480;
+		*yres = atoi(getenv("ANDROID_SCREEN_HEIGHT"));
 
 	if(bpp)
 		*bpp = 32;
@@ -117,4 +115,3 @@ Status sys_cursor_reset()
 {
 	return INFO::OK;
 }
-
