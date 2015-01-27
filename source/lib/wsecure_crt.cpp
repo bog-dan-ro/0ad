@@ -25,5 +25,5 @@
 #include "precompiled.h"
 
 #define WSECURE_CRT
-#include "secure_crt.cpp"
+#include "secure_crt.inl"
 #undef WSECURE_CRT
