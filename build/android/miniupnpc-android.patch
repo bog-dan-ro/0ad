@@ -1,0 +1,11 @@
+--- miniwget_orig.c	2014-12-27 21:51:18.784019614 +0200
++++ miniwget.c	2014-12-27 21:51:50.536020132 +0200
+@@ -43,7 +43,7 @@
+  * during the connect() call */
+ #define MINIUPNPC_IGNORE_EINTR
+ #endif /* #else _WIN32 */
+-#if defined(__sun) || defined(sun)
++#if defined(__sun) || defined(sun) || defined(__ANDROID__)
+ #define MIN(x,y) (((x)<(y))?(x):(y))
+ #endif
+ 
