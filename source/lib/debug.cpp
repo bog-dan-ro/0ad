@@ -43,16 +43,16 @@
 #endif
 
 static const StatusDefinition debugStatusDefinitions[] = {
-	{ ERR::SYM_NO_STACK_FRAMES_FOUND, L"No stack frames found" },
-	{ ERR::SYM_UNRETRIEVABLE_STATIC, L"Value unretrievable (stored in external module)" },
-	{ ERR::SYM_UNRETRIEVABLE, L"Value unretrievable" },
-	{ ERR::SYM_TYPE_INFO_UNAVAILABLE, L"Error getting type_info" },
-	{ ERR::SYM_INTERNAL_ERROR, L"Exception raised while processing a symbol" },
-	{ ERR::SYM_UNSUPPORTED, L"Symbol type not (fully) supported" },
-	{ ERR::SYM_CHILD_NOT_FOUND, L"Symbol does not have the given child" },
-	{ ERR::SYM_NESTING_LIMIT, L"Symbol nesting too deep or infinite recursion" },
-	{ ERR::SYM_SINGLE_SYMBOL_LIMIT, L"Symbol has produced too much output" },
-	{ INFO::SYM_SUPPRESS_OUTPUT, L"Symbol was suppressed" }
+	{ ERR::SYM_NO_STACK_FRAMES_FOUND, L"No stack frames found", 0 },
+	{ ERR::SYM_UNRETRIEVABLE_STATIC, L"Value unretrievable (stored in external module)", 0 },
+	{ ERR::SYM_UNRETRIEVABLE, L"Value unretrievable", 0 },
+	{ ERR::SYM_TYPE_INFO_UNAVAILABLE, L"Error getting type_info", 0 },
+	{ ERR::SYM_INTERNAL_ERROR, L"Exception raised while processing a symbol", 0 },
+	{ ERR::SYM_UNSUPPORTED, L"Symbol type not (fully) supported", 0 },
+	{ ERR::SYM_CHILD_NOT_FOUND, L"Symbol does not have the given child", 0 },
+	{ ERR::SYM_NESTING_LIMIT, L"Symbol nesting too deep or infinite recursion", 0 },
+	{ ERR::SYM_SINGLE_SYMBOL_LIMIT, L"Symbol has produced too much output", 0 },
+	{ INFO::SYM_SUPPRESS_OUTPUT, L"Symbol was suppressed", 0 }
 };
 STATUS_ADD_DEFINITIONS(debugStatusDefinitions);
 

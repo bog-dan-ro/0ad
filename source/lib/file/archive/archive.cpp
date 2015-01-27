@@ -28,8 +28,8 @@
 #include "lib/file/archive/archive.h"
 
 static const StatusDefinition archiveStatusDefinitions[] = {
-	{ ERR::ARCHIVE_UNKNOWN_FORMAT, L"Unknown archive format" },
-	{ ERR::ARCHIVE_UNKNOWN_METHOD, L"Unknown compression method" }
+	{ ERR::ARCHIVE_UNKNOWN_FORMAT, L"Unknown archive format", 0 },
+	{ ERR::ARCHIVE_UNKNOWN_METHOD, L"Unknown compression method", 0 }
 };
 STATUS_ADD_DEFINITIONS(archiveStatusDefinitions);
 
