@@ -76,7 +76,7 @@ public:
 		Tex tex;
 		TS_ASSERT_OK(tex.decode(file, fileSize));
 
-		TS_ASSERT_OK(tex.transform_to((tex.m_Flags | TEX_BGR | TEX_ALPHA) & ~(TEX_DXT | TEX_MIPMAPS)));
+		TS_ASSERT_OK(tex.transform(GL_BGRA_EXT));
 
 		u8* texdata = tex.get_data();
 

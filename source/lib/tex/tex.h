@@ -57,7 +57,7 @@ Since any kind of preprocessing at runtime is undesirable (the absolute
 priority is minimizing load time), prefer file formats that are
 close to the final pixel format.
 
-1) one of the exceptions is S3TC compressed textures. glCompressedTexImage2D
+1) one of the exceptions is compressed textures. glCompressedTexImage2D
    requires these be passed in their original format; decompressing would be
    counterproductive. In this and similar cases, TexFlags indicates such
    deviations from the plain format.
@@ -109,7 +109,6 @@ library and IO layer. Read and write are zero-copy.
 #include "lib/file/vfs/vfs_path.h"
 #include "lib/allocators/dynarray.h"
 
-
 namespace ERR
 {
 	const Status TEX_UNKNOWN_FORMAT      = -120100;
@@ -140,44 +139,6 @@ namespace INFO
 enum TexFlags
 {
 	/**
-	 * flags & TEX_DXT is a field indicating compression.
-	 * if 0, the texture is uncompressed;
-	 * otherwise, it holds the S3TC type: 1,3,5 or DXT1A.
-	 * not converted by default - glCompressedTexImage2D receives
-	 * the compressed data.
-	 **/
-	TEX_DXT = 0x7,	 // mask
-
-	/**
-	 * we need a special value for DXT1a to avoid having to consider
-	 * flags & TEX_ALPHA to determine S3TC type.
-	 * the value is arbitrary; do not rely on it!
-	 **/
-	DXT1A = 7,
-
-	/**
-	 * indicates B and R pixel components are exchanged. depending on
-	 * flags & TEX_ALPHA or bpp, this means either BGR or BGRA.
-	 * not converted by default - it's an acceptable format for OpenGL.
-	 **/
-	TEX_BGR = 0x08,
-
-	/**
-	 * indicates the image contains an alpha channel. this is set for
-	 * your convenience - there are many formats containing alpha and
-	 * divining this information from them is hard.
-	 * (conversion is not applicable here)
-	 **/
-	TEX_ALPHA = 0x10,
-
-	/**
-	 * indicates the image is 8bpp greyscale. this is required to
-	 * differentiate between alpha-only and intensity formats.
-	 * not converted by default - it's an acceptable format for OpenGL.
-	 **/
-	TEX_GREY = 0x20,
-
-	/**
 	 * flags & TEX_ORIENTATION is a field indicating orientation,
 	 * i.e. in what order the pixel rows are stored.
 	 *
@@ -201,6 +162,24 @@ enum TexFlags
 	TEX_UNDEFINED_FLAGS = ~0x1FF
 };
 
+struct Tex;
+
+/**
+ * function pointer used to get each mipmap level/face data.
+ *
+ * The TexCodec should set Tex::m_mipmapLevel to their own function
+ *
+ * @param Tex - the texture struct
+ * @param level - searched level [0..t->m_numberOfMipmapLevels]
+ * @param face - searched face [0..m_numberOfFaces]
+ * @param width - sets the width of the level
+ * @param height - sets the height
+ * @param mipmapData - level & face data
+ * @param mipmapDataSize - level size
+ **/
+typedef Status (*MipmapLevel)(const Tex* t, size_t level, size_t face, size_t &width, size_t &height, u8 *&mipmapData, size_t &mipmapDataSize);
+
+class ITexCodec;
 /**
  * stores all data describing an image.
  * we try to minimize size, since this is stored in OglTex resources
@@ -231,6 +210,28 @@ struct Tex
 
 	/// see TexFlags and "Format Conversion" in docs.
 	size_t m_Flags;
+
+	/// Set only for uncompressed textures.
+	size_t m_glType;
+
+	/// Set for both, compressed and uncompressed textures.
+	size_t m_glFormat;
+
+	/// Set only for compressed textures
+	size_t m_glInternalFormat;
+
+	///Possible values 1 or 6
+	size_t m_numberOfFaces;
+
+	/// numberOfMipmapLevels must equal 1 for non-mipmapped textures.
+	/// If numberOfMipmapLevels equals 0, it indicates that a full
+	/// mipmap pyramid should be generated from level 0 at load time
+	/// (this is usually not allowed for compressed formats).
+	size_t m_numberOfMipmapLevels;
+
+	MipmapLevel m_mipmapsLevel; // set it to 0 for default uncompressed mipmap level
+
+	Tex();
 
 	~Tex()
 	{
@@ -297,7 +298,7 @@ struct Tex
 	 * @param ofs
 	 * @return Status
 	 **/
-	Status wrap(size_t w, size_t h, size_t bpp, size_t flags, const shared_ptr<u8>& data, size_t ofs);
+	Status wrap(size_t glFormat, size_t w, size_t h, size_t bpp, size_t flags, const shared_ptr<u8>& data, size_t ofs);
 	
 	//
 	// modify image
@@ -305,20 +306,12 @@ struct Tex
 
 	/**
 	 * Change the pixel format.
-	 *
-	 * @param transforms TexFlags that are to be flipped.
+	 * @param glFormat new pixel format
+	 * @param transforms ORed TransformFlags
 	 * @return Status
 	 **/
-	Status transform(size_t transforms);
+	Status transform(size_t glFormat, int transformFlags = 0);
 
-	/**
-	 * Change the pixel format (2nd version)
-	 * (note: this is equivalent to Tex::transform(t, t-\>flags^new_flags).
-	 *
-	 * @param new_flags desired new value of TexFlags.
-	 * @return Status
-	 **/
-	Status transform_to(size_t new_flags);
 
 	//
 	// return image information
@@ -330,7 +323,7 @@ struct Tex
 	 *
 	 * @return pointer to data returned by mem_get_ptr (holds reference)!
 	 **/
-	u8* get_data();
+	u8* get_data() const;
 
 	/**
 	 * return the ARGB value of the 1x1 mipmap level of the texture.
@@ -348,6 +341,23 @@ struct Tex
 	 **/
 	size_t img_size() const;
 
+	/**
+	 * mothod used to get each mipmap level/face data.
+	 *
+	 * @param level - searched level [0..t->m_numberOfMipmapLevels]
+	 * @param face - searched face [0..m_numberOfFaces]
+	 * @param width - sets the width of the level
+	 * @param height - sets the height
+	 * @param mipmapData - level & face data
+	 * @param mipmapDataSize - level size
+	 *
+	 * @return Status
+	 **/
+	Status mipmapsLevel(size_t level, size_t face, size_t &width, size_t &height, u8 *&mipmapData, size_t &mipmapDataSize) const;
+
+	static bool hasAlpha(size_t glFormat);
+	inline bool hasAlpha() const { return hasAlpha(m_glFormat); }
+	size_t glFormatWithAlpha() const;
 };
 
 
@@ -359,24 +369,18 @@ struct Tex
  **/
 extern void tex_set_global_orientation(int orientation);
 
-
-/**
- * special value for levels_to_skip: the callback will only be called
- * for the base mipmap level (i.e. 100%)
- **/
-const int TEX_BASE_LEVEL_ONLY = -1;
-
 /**
  * callback function for each mipmap level.
  *
  * @param level number; 0 for base level (i.e. 100%), or the first one
  * in case some were skipped.
+ * @param face number; 0 for base face
  * @param level_w, level_h pixel dimensions (powers of 2, never 0)
  * @param level_data the level's texels
  * @param level_data_size [bytes]
  * @param cbData passed through from tex_util_foreach_mipmap.
  **/
-typedef void (*MipmapCB)(size_t level, size_t level_w, size_t level_h, const u8* RESTRICT level_data, size_t level_data_size, void* RESTRICT cbData);
+typedef void (*MipmapCB)(size_t level, size_t face, size_t level_w, size_t level_h, const u8* RESTRICT level_data, size_t level_data_size, void* RESTRICT cbData);
 
 /**
  * for a series of mipmaps stored from base to highest, call back for
@@ -389,14 +393,10 @@ typedef void (*MipmapCB)(size_t level, size_t level_w, size_t level_h, const u8*
  *		  TEX_BASE_LEVEL_ONLY to only call back for the base image.
  *		  Rationale: this avoids needing to special case for images with or
  *		  without mipmaps.
- * @param data_padding Minimum pixel dimensions of mipmap levels.
- *		  This is used in S3TC images, where each level is actually stored in
- *		  4x4 blocks. usually 1 to indicate levels are consecutive.
  * @param cb MipmapCB to call.
  * @param cbData Extra data to pass to cb.
  **/
-extern void tex_util_foreach_mipmap(size_t w, size_t h, size_t bpp, const u8* data, int levels_to_skip, size_t data_padding, MipmapCB cb, void* RESTRICT cbData);
-
+extern void tex_util_foreach_mipmap(const Tex *t, int levels_to_skip, MipmapCB cb, void* RESTRICT cbData);
 
 //
 // image writing

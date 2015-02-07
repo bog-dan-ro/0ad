@@ -317,9 +317,6 @@ global.RunHardwareDetection = function(settings)
 	if (output.disable_audio !== undefined)
 		Engine.SetDisableAudio(output.disable_audio);
 
-	if (output.disable_s3tc !== undefined)
-		Engine.SetDisableS3TC(output.disable_s3tc);
-
 	if (output.disable_shadows !== undefined)
 		Engine.SetDisableShadows(output.disable_shadows);
 

@@ -173,16 +173,17 @@ const wchar_t* ErrorString(int err)
 // write the specified texture to disk.
 // note: <t> cannot be made const because the image may have to be
 // transformed to write it out in the format determined by <fn>'s extension.
-Status tex_write(Tex* t, const VfsPath& filename)
+Status tex_write(Tex* t, const VfsPath& filename, PIVFS fs)
 {
 	DynArray da;
 	RETURN_STATUS_IF_ERR(t->encode(filename.Extension(), &da));
-
+	if (!fs)
+		fs = g_VFS;
 	// write to disk
 	Status ret = INFO::OK;
 	{
 		shared_ptr<u8> file = DummySharedPtr(da.base);
-		const ssize_t bytes_written = g_VFS->CreateFile(filename, file, da.pos);
+		const ssize_t bytes_written = fs->CreateFile(filename, file, da.pos);
 		if(bytes_written > 0)
 			ENSURE(bytes_written == (ssize_t)da.pos);
 		else
@@ -218,7 +219,6 @@ void WriteScreenshot(const VfsPath& extension)
 	{
 #if !CONFIG2_GLES // GLES doesn't support BGR
 		fmt = GL_BGR;
-		flags |= TEX_BGR;
 #endif
 	}
 
@@ -233,7 +233,7 @@ void WriteScreenshot(const VfsPath& extension)
 	AllocateAligned(buf, hdr_size+img_size, maxSectorSize);
 	GLvoid* img = buf.get() + hdr_size;
 	Tex t;
-	if(t.wrap(w, h, bpp, flags, buf, hdr_size) < 0)
+	if(t.wrap(GL_RGB, w, h, bpp, flags, buf, hdr_size) < 0)
 		return;
 	glReadPixels(0, 0, (GLsizei)w, (GLsizei)h, fmt, GL_UNSIGNED_BYTE, img);
 
@@ -277,7 +277,6 @@ void WriteBigScreenshot(const VfsPath& extension, int tiles)
 	{
 #if !CONFIG2_GLES // GLES doesn't support BGR
 		fmt = GL_BGR;
-		flags |= TEX_BGR;
 #endif
 	}
 
@@ -295,7 +294,7 @@ void WriteBigScreenshot(const VfsPath& extension, int tiles)
 
 	Tex t;
 	GLvoid* img = img_buf.get() + hdr_size;
-	if(t.wrap(img_w, img_h, bpp, flags, img_buf, hdr_size) < 0)
+	if(t.wrap(fmt, img_w, img_h, bpp, flags, img_buf, hdr_size) < 0)
 	{
 		free(tile_data);
 		return;

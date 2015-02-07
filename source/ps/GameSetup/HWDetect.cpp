@@ -129,12 +129,6 @@ void SetDisableAudio(ScriptInterface::CxPrivate* UNUSED(pCxPrivate), bool disabl
 	g_DisableAudio = disabled;
 }
 
-void SetDisableS3TC(ScriptInterface::CxPrivate* UNUSED(pCxPrivate), bool disabled)
-{
-	if (!IsOverridden("nos3tc"))
-		ogl_tex_override(OGL_TEX_S3TC, disabled ? OGL_TEX_DISABLE : OGL_TEX_ENABLE);
-}
-
 void SetDisableShadows(ScriptInterface::CxPrivate* UNUSED(pCxPrivate), bool disabled)
 {
 	if (!IsOverridden("shadows"))
@@ -186,7 +180,6 @@ void RunHardwareDetection()
 	JSAutoRequest rq(cx);
 
 	scriptInterface.RegisterFunction<void, bool, &SetDisableAudio>("SetDisableAudio");
-	scriptInterface.RegisterFunction<void, bool, &SetDisableS3TC>("SetDisableS3TC");
 	scriptInterface.RegisterFunction<void, bool, &SetDisableShadows>("SetDisableShadows");
 	scriptInterface.RegisterFunction<void, bool, &SetDisableShadowPCF>("SetDisableShadowPCF");
 	scriptInterface.RegisterFunction<void, bool, &SetDisableAllWater>("SetDisableAllWater");
@@ -719,9 +712,13 @@ static void ReportGLLimits(ScriptInterface& scriptInterface, JS::HandleValue set
 #else
 		Display* dpy = wminfo.info.x11.gfxdisplay;
 #endif
-		int scrnum = DefaultScreen(dpy);
 
+#if CONFIG2_GLES
+		const char* glxexts = (const char*)glGetString(GL_EXTENSIONS);
+#else
+		int scrnum = DefaultScreen(dpy);
 		const char* glxexts = glXQueryExtensionsString(dpy, scrnum);
+#endif
 
 		scriptInterface.SetProperty(settings, "glx_extensions", glxexts);
 

@@ -333,7 +333,7 @@ void CTerrainTextureEntry::LoadAlphaMaps(VfsPath &amtype)
 
 	// upload the composite texture
 	Tex t;
-	(void)t.wrap(total_w, total_h, 8, TEX_GREY, data, 0);
+	(void)t.wrap(GL_ALPHA, total_w, total_h, 8, 0, data, 0);
 	
 	// uncomment the following to save a png of the generated texture
 	// in the public/ directory, for debugging
@@ -358,7 +358,7 @@ void CTerrainTextureEntry::LoadAlphaMaps(VfsPath &amtype)
 	Handle hCompositeAlphaMap = ogl_tex_wrap(&t, g_VFS, key);
 	(void)ogl_tex_set_filter(hCompositeAlphaMap, GL_LINEAR);
 	(void)ogl_tex_set_wrap  (hCompositeAlphaMap, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-	ogl_tex_upload(hCompositeAlphaMap, GL_ALPHA, 0, 0);
+	ogl_tex_upload(hCompositeAlphaMap);
 	result.m_hCompositeAlphaMap = hCompositeAlphaMap;
 	
 	m_TerrainAlpha = it;

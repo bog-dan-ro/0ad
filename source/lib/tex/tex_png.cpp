@@ -32,6 +32,7 @@
 #include "tex_codec.h"
 #include "lib/allocators/shared_ptr.h"
 #include "lib/timer.h"
+#include "lib/ogl.h"
 
 #if MSC_VERSION
 
@@ -107,7 +108,7 @@ static void io_flush(png_structp UNUSED(png_ptr))
 
 //-----------------------------------------------------------------------------
 
-Status TexCodecPng::transform(Tex* UNUSED(t), size_t UNUSED(transforms)) const
+Status TexCodecPng::transform(Tex* UNUSED(t), size_t UNUSED(glFormat), int UNUSED(flags)) const
 {
 	return INFO::TEX_CODEC_CANNOT_HANDLE;
 }
@@ -130,15 +131,23 @@ static Status png_decode_impl(MemoryStream* stream, png_structp png_ptr, png_inf
 	const size_t pitch = png_get_rowbytes(png_ptr, info_ptr);
 	const u32 bpp = (u32)(pitch/w * 8);
 
-	size_t flags = 0;
-	if(bpp == 32)
-		flags |= TEX_ALPHA;
-	if(colour_type == PNG_COLOR_TYPE_GRAY)
-		flags |= TEX_GREY;
-
-	// make sure format is acceptable
-	if(bit_depth != 8)
-		WARN_RETURN(ERR::TEX_NOT_8BIT_PRECISION);
+	size_t glFormat = 0;
+	switch (bpp) {
+	case 8:
+		glFormat = GL_LUMINANCE;
+		break;
+	case 16:
+		glFormat = GL_LUMINANCE_ALPHA;
+		break;
+	case 24:
+		glFormat = GL_RGB;
+		break;
+	case 32:
+		glFormat = GL_RGBA;
+		break;
+	default:
+		break;
+	}
 	if(colour_type & PNG_COLOR_MASK_PALETTE)
 		WARN_RETURN(ERR::TEX_INVALID_COLOR_TYPE);
 
@@ -154,7 +163,7 @@ static Status png_decode_impl(MemoryStream* stream, png_structp png_ptr, png_inf
 	ENSURE(stream->RemainingSize() == 0);
 
 	// store image info and validate
-	return t->wrap(w,h,bpp,flags,data,0);
+	return t->wrap(glFormat, w, h, bpp, 0, data, 0);
 }
 
 
@@ -166,20 +175,22 @@ static Status png_encode_impl(Tex* t, png_structp png_ptr, png_infop info_ptr, D
 	const size_t pitch = w * t->m_Bpp / 8;
 
 	int colour_type;
-	switch(t->m_Flags & (TEX_GREY|TEX_ALPHA))
+	switch(t->m_glFormat)
 	{
-	case TEX_GREY|TEX_ALPHA:
-		colour_type = PNG_COLOR_TYPE_GRAY_ALPHA;
-		break;
-	case TEX_GREY:
+	case GL_LUMINANCE:
 		colour_type = PNG_COLOR_TYPE_GRAY;
 		break;
-	case TEX_ALPHA:
+	case GL_LUMINANCE_ALPHA:
+		colour_type = PNG_COLOR_TYPE_GRAY_ALPHA;
+		break;
+	case GL_RGB:
+		colour_type = PNG_COLOR_TYPE_RGB;
+		break;
+	case GL_RGBA:
 		colour_type = PNG_COLOR_TYPE_RGB_ALPHA;
 		break;
 	default:
-		colour_type = PNG_COLOR_TYPE_RGB;
-		break;
+		return ERR::TEX_FMT_INVALID;
 	}
 
 	png_set_write_fn(png_ptr, da, io_write, io_flush);
@@ -190,7 +201,7 @@ static Status png_encode_impl(Tex* t, png_structp png_ptr, png_infop info_ptr, D
 	std::vector<RowPtr> rows = tex_codec_alloc_rows(data, h, pitch, t->m_Flags, TEX_TOP_DOWN);
 
 	// PNG is native RGB.
-	const int png_transforms = (t->m_Flags & TEX_BGR)? PNG_TRANSFORM_BGR : PNG_TRANSFORM_IDENTITY;
+	const int png_transforms = (t->m_glFormat == GL_BGR || t->m_glFormat == GL_BGRA_EXT)? PNG_TRANSFORM_BGR : PNG_TRANSFORM_IDENTITY;
 
 	png_set_rows(png_ptr, info_ptr, (png_bytepp)&rows[0]);
 	png_write_png(png_ptr, info_ptr, png_transforms, 0);

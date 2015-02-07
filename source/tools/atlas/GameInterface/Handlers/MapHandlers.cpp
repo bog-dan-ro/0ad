@@ -203,7 +203,7 @@ MESSAGEHANDLER(ImportHeightmap)
 	}
 
 	// Convert to uncompressed BGRA with no mipmaps
-	if (tex.transform_to((tex.m_Flags | TEX_BGR | TEX_ALPHA) & ~(TEX_DXT | TEX_MIPMAPS)) < 0)
+	if (tex.transform(GL_BGRA_EXT) < 0)
 	{
 		LOGERROR("Failed to transform heightmap.");
 		return;

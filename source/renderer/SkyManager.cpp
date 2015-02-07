@@ -73,6 +73,11 @@ SkyManager::SkyManager()
 	m_SkyCubeMap = 0;
 }
 
+#if CONFIG2_KTX
+# define EXT L".ktx"
+#else
+# define EXT L".dds"
+#endif
 
 ///////////////////////////////////////////////////////////////////
 // Load all sky textures
@@ -116,13 +121,13 @@ void SkyManager::LoadSkyTextures()
 	
 	for (size_t i = 0; i < numTextures+1; ++i)
 	{
-		VfsPath path = VfsPath("art/textures/skies") / m_SkySet / (Path::String(images[i])+L".dds");
+		VfsPath path = VfsPath("art/textures/skies") / m_SkySet / (Path::String(images[i]) + L".dds");
 		
 		shared_ptr<u8> file;
 		size_t fileSize;
 		if (g_VFS->LoadFile(path, file, fileSize) < 0)
 		{
-			VfsPath path2 = VfsPath("art/textures/skies") / m_SkySet / (Path::String(images[i])+L".dds.cached.dds");
+			VfsPath path2 = VfsPath("art/textures/skies") / m_SkySet / (Path::String(images[i]) + L".dds.cached" + EXT);
 			if (g_VFS->LoadFile(path2, file, fileSize) < 0)
 			{
 				glDeleteTextures(1, &m_SkyCubeMap);
@@ -133,8 +138,8 @@ void SkyManager::LoadSkyTextures()
 		
 		Tex tex;
 		tex.decode(file, fileSize);
-		
-		tex.transform_to((tex.m_Flags | TEX_BOTTOM_UP | TEX_ALPHA) & ~(TEX_DXT | TEX_MIPMAPS));
+		if (INFO::OK != tex.transform(tex.glFormatWithAlpha(), TEX_ORIENTATION))
+			break;
 		
 		u8* data = tex.get_data();
 		
@@ -155,11 +160,11 @@ void SkyManager::LoadSkyTextures()
 				}
 			}
 			
-			glTexImage2D(types[i], 0, GL_RGB, tex.m_Width, tex.m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &rotated[0]);
+			glTexImage2D(types[i], 0, GL_RGBA, tex.m_Width, tex.m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &rotated[0]);
 		}
 		else
 		{
-			glTexImage2D(types[i], 0, GL_RGB, tex.m_Width, tex.m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(types[i], 0, GL_RGBA, tex.m_Width, tex.m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		}
 	}
 	

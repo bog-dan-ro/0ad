@@ -31,6 +31,7 @@
 #include <stdlib.h>
 
 #include "lib/allocators/shared_ptr.h" // ArrayDeleter
+#include "lib/ogl.h"
 #include "tex.h"
 
 // Statically allocate all of the codecs...
@@ -39,9 +40,12 @@ TexCodecPng PngCodec;
 TexCodecJpg JpgCodec;
 TexCodecTga TgaCodec;
 TexCodecBmp BmpCodec;
+TexCodecKtx KtxCodec;
+
 // Codecs will be searched in this order
 static const ITexCodec *codecs[] = {(ITexCodec *)&DdsCodec, (ITexCodec *)&PngCodec,
-	(ITexCodec *)&JpgCodec, (ITexCodec *)&TgaCodec, (ITexCodec *)&BmpCodec};
+	(ITexCodec *)&JpgCodec, (ITexCodec *)&TgaCodec, (ITexCodec *)&BmpCodec,
+	(ITexCodec *)&KtxCodec};
 static const int codecs_len = sizeof(codecs) / sizeof(ITexCodec*);
 
 // find codec that recognizes the desired output file extension,
@@ -82,14 +86,14 @@ Status tex_codec_for_header(const u8* file, size_t file_size, const ITexCodec** 
 	WARN_RETURN(ERR::TEX_UNKNOWN_FORMAT);
 }
 
-Status tex_codec_transform(Tex* t, size_t transforms)
+Status tex_codec_transform(Tex* t, size_t glFormat, int flags)
 {
 	Status ret = INFO::TEX_CODEC_CANNOT_HANDLE;
 
 	// find codec that understands the data, and transform
 	for(int i = 0; i < codecs_len; ++i)
 	{
-		Status err = codecs[i]->transform(t, transforms);
+		Status err = codecs[i]->transform(t, glFormat, flags);
 		// success
 		if(err == INFO::OK)
 			return INFO::OK;
@@ -140,9 +144,9 @@ std::vector<RowPtr> tex_codec_alloc_rows(const u8* data, size_t h, size_t pitch,
 }
 
 
-Status tex_codec_write(Tex* t, size_t transforms, const void* hdr, size_t hdr_size, DynArray* da)
+Status tex_codec_write(Tex* t, size_t glFormat, int flags, const void* hdr, size_t hdr_size, DynArray* da)
 {
-	RETURN_STATUS_IF_ERR(t->transform(transforms));
+	RETURN_STATUS_IF_ERR(t->transform(glFormat, flags));
 
 	void* img_data = t->get_data(); const size_t img_size = t->img_size();
 	RETURN_STATUS_IF_ERR(da_append(da, hdr, hdr_size));
