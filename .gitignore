@@ -16,6 +16,9 @@ binaries/system/ActorEditor_dbg
 binaries/system/pyrogenesis_dbg
 binaries/system/test_dbg
 
+build/android/build-*/
+build/android/temp/
+build/android/files/
 build/workspaces/gcc/
 build/workspaces/codeblocks/
 build/premake/premake4/bin/release/premake4
@@ -36,6 +39,7 @@ __pycache__/
 *.o
 *.lo
 *.la
+libraries/android
 libraries/source/fcollada/src/output/
 libraries/source/spidermonkey/.already-built
 libraries/source/spidermonkey/include-unix-debug/
@@ -43,5 +47,6 @@ libraries/source/spidermonkey/include-unix-release/
 libraries/source/spidermonkey/mozjs24/
 libraries/source/nvtt/src/build/
 
+source/cat
 # "long" translation files
 long.*.po

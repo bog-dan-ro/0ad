@@ -1,0 +1,15 @@
+diff --git a/js/src/moz.build b/js/src/moz.build
+index 96aefd0..7eca5cb 100644
+--- a/js/src/moz.build
++++ b/js/src/moz.build
+@@ -11,8 +11,8 @@ if CONFIG['JS_NATIVE_EDITLINE']:
+     DIRS += ['editline']
+ 
+ # editline needs to get built before the shell
+-if not CONFIG['JS_DISABLE_SHELL']:
+-    DIRS += ['shell']
++#if not CONFIG['JS_DISABLE_SHELL']:
++#    DIRS += ['shell']
+ 
+ TEST_DIRS += ['jsapi-tests', 'tests', 'gdb']
+ 
