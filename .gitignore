@@ -17,6 +17,9 @@ binaries/system/pyrogenesis_dbg
 binaries/system/test
 binaries/system/test_dbg
 
+build/android/build-*/
+build/android/temp/
+build/android/files/
 build/workspaces/codeblocks/
 build/workspaces/gcc/
 build/workspaces/xcode3/
@@ -40,6 +43,7 @@ __pycache__/
 *.o
 *.lo
 *.la
+libraries/android
 libraries/source/fcollada/src/output/
 libraries/source/spidermonkey/.already-built
 libraries/source/spidermonkey/include-unix-debug/
@@ -67,6 +71,7 @@ libraries/osx/zlib/
 libraries/source/fcollada/.already-built
 libraries/source/nvtt/.already-built
 
+source/cat
 # "long" translation files
 long.*.po
 
