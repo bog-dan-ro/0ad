@@ -65,8 +65,7 @@ static Status load_sys_cursor(const PIVFS& vfs, const VfsPath& pathname, int hx,
 	RETURN_STATUS_IF_ERR(t.decode(file, fileSize));
 
 	// convert to required BGRA format.
-	const size_t flags = (t.m_Flags | TEX_BGR) & ~TEX_DXT;
-	RETURN_STATUS_IF_ERR(t.transform_to(flags));
+	RETURN_STATUS_IF_ERR(t.transform(GL_BGRA_EXT));
 	void* bgra_img = t.get_data();
 	if(!bgra_img)
 		WARN_RETURN(ERR::FAIL);
@@ -93,8 +92,7 @@ public:
 		RETURN_STATUS_IF_ERR(t.decode(file, fileSize));
 
 		// convert to required BGRA format.
-		const size_t flags = (t.m_Flags | TEX_BGR) & ~TEX_DXT;
-		RETURN_STATUS_IF_ERR(t.transform_to(flags));
+		RETURN_STATUS_IF_ERR(t.transform(GL_BGRA_EXT));
 		void* bgra_img = t.get_data();
 		if(!bgra_img)
 			WARN_RETURN(ERR::FAIL);

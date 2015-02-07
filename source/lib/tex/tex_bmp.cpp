@@ -27,6 +27,7 @@
 #include "precompiled.h"
 
 #include "lib/byte_order.h"
+#include "lib/ogl.h"
 #include "tex_codec.h"
 
 #pragma pack(push, 1)
@@ -60,7 +61,7 @@ struct BmpHeader
 #define BI_RGB 0		// biCompression
 
 
-Status TexCodecBmp::transform(Tex* UNUSED(t), size_t UNUSED(transforms)) const
+Status TexCodecBmp::transform(Tex* UNUSED(t), size_t UNUSED(glFormat), int UNUSED(flags)) const
 {
 	return INFO::TEX_CODEC_CANNOT_HANDLE;
 }
@@ -107,19 +108,33 @@ Status TexCodecBmp::decode(rpU8 data, size_t UNUSED(size), Tex* RESTRICT t) cons
 
 	size_t flags = 0;
 	flags |= (h_ < 0)? TEX_TOP_DOWN : TEX_BOTTOM_UP;
-	if(bpp > 16)
-		flags |= TEX_BGR;
-	if(bpp == 32)
-		flags |= TEX_ALPHA;
+	switch (bpp) {
+	case 8:
+		t->m_glFormat = GL_LUMINANCE;
+		break;
+	case 16:
+		t->m_glFormat = GL_LUMINANCE_ALPHA;
+		break;
+	case 24:
+		t->m_glFormat = GL_BGR;
+		break;
+	case 32:
+		t->m_glFormat = GL_BGRA_EXT;
+		break;
+	default:
+		break;
+	}
 
 	// sanity checks
 	if(compress != BI_RGB)
 		WARN_RETURN(ERR::TEX_COMPRESSED);
 
+	t->m_glType = GL_UNSIGNED_BYTE;
 	t->m_Width  = w;
 	t->m_Height = h;
 	t->m_Bpp    = bpp;
 	t->m_Flags  = flags;
+	t->m_glInternalFormat = t->m_glFormat;
 	return INFO::OK;
 }
 
@@ -130,10 +145,6 @@ Status TexCodecBmp::encode(Tex* RESTRICT t, DynArray* RESTRICT da) const
 	const size_t img_size = t->img_size();
 	const size_t file_size = hdr_size + img_size;
 	const i32 h = (t->m_Flags & TEX_TOP_DOWN)? -(i32)t->m_Height : (i32)t->m_Height;
-
-	size_t transforms = t->m_Flags;
-	transforms &= ~TEX_ORIENTATION;	// no flip needed - we can set top-down bit.
-	transforms ^= TEX_BGR;			// BMP is native BGR.
 
 	const BmpHeader hdr =
 	{
@@ -153,5 +164,5 @@ Status TexCodecBmp::encode(Tex* RESTRICT t, DynArray* RESTRICT da) const
 		(u32)img_size,		// biSizeImage
 		0, 0, 0, 0			// unused (bi?PelsPerMeter, biClr*)
 	};
-	return tex_codec_write(t, transforms, &hdr, hdr_size, da);
+	return tex_codec_write(t, (t->hasAlpha() ? GL_BGRA_EXT : GL_BGR), 0, &hdr, hdr_size, da);
 }

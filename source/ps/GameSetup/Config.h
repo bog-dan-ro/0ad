@@ -25,11 +25,6 @@
 // prevent various OpenGL features from being used. this allows working
 // around issues like buggy drivers.
 
-// when loading S3TC-compressed texture files, do not pass them directly to 
-// OpenGL; instead, decompress them via software to regular textures.
-// (necessary on JW's S3 laptop graphics card -- oh, the irony)
-extern bool g_NoGLS3TC;
-
 // do not ask OpenGL to create mipmaps; instead, generate them in software
 // and upload them all manually. (potentially helpful for PT's system, where
 // Mesa falsely reports full S3TC support but isn't able to generate mipmaps

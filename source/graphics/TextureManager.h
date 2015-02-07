@@ -73,6 +73,12 @@ class CTextureManager
 	NONCOPYABLE(CTextureManager);
 
 public:
+	enum CompressedTextureType {
+		S3TC,
+		ETC2
+	};
+
+public:
 	/**
 	 * Construct texture manager. vfs must be the VFS instance used for all textures
 	 * loaded from this object.
@@ -109,7 +115,7 @@ public:
 	 * is intended for pre-caching textures in release archives.
 	 * @return true on success
 	 */
-	bool GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath);
+	bool GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath, CompressedTextureType textureType);
 
 	/**
 	 * Returns total number of bytes uploaded for all current texture.

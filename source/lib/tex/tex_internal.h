@@ -40,7 +40,7 @@
  * @param flags TexFlags
  * @return Status
  **/
-extern Status tex_validate_plain_format(size_t bpp, size_t flags);
+extern Status tex_validate_plain_format(size_t bpp, size_t glFormat);
 
 
 /**

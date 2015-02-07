@@ -24,6 +24,7 @@
 
 #include "graphics/Terrain.h"
 #include "lib/timer.h"
+#include "lib/ogl.h"
 #include "lib/tex/tex.h"
 #include "lib/allocators/shared_ptr.h"
 #include "ps/CLogger.h"
@@ -320,14 +321,14 @@ public:
 		}
 		
 		const size_t bpp = 8;
-		int flags = TEX_BOTTOM_UP|TEX_GREY;
+		int flags = TEX_BOTTOM_UP;
 		
 		const size_t img_size = w * h * bpp/8;
 		const size_t hdr_size = tex_hdr_size(filename);
 		shared_ptr<u8> buf;
 		AllocateAligned(buf, hdr_size+img_size, maxSectorSize);
 		Tex t;
-		if (t.wrap(w, h, bpp, flags, buf, hdr_size) < 0)
+		if (t.wrap(GL_LUMINANCE, w, h, bpp, flags, buf, hdr_size) < 0)
 			return;
 		
 		u8* img = buf.get() + hdr_size;

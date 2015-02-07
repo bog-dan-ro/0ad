@@ -73,13 +73,18 @@ struct TPequal_to
 	}
 };
 
+#if CONFIG2_KTX
+# define EXT L".ktx"
+#else
+# define EXT L".dds"
+#endif
 
 class CTextureManagerImpl
 {
 	friend class CTexture;
 public:
 	CTextureManagerImpl(PIVFS vfs, bool highQuality, bool disableGL) :
-		m_VFS(vfs), m_CacheLoader(vfs, L".dds"), m_DisableGL(disableGL), m_TextureConverter(vfs, highQuality),
+		m_VFS(vfs), m_CacheLoader(vfs, EXT), m_DisableGL(disableGL), m_TextureConverter(vfs, highQuality),
 		m_DefaultHandle(0), m_ErrorHandle(0)
 	{
 		// Initialise some textures that will always be available,
@@ -94,7 +99,7 @@ public:
 			data.get()[1] = 64;
 			data.get()[2] = 64;
 			Tex t;
-			(void)t.wrap(1, 1, 24, 0, data, 0);
+			(void)t.wrap(GL_RGB, 1, 1, 24, 0, data, 0);
 
 			m_DefaultHandle = ogl_tex_wrap(&t, m_VFS, L"(default texture)");
 			(void)ogl_tex_set_filter(m_DefaultHandle, GL_LINEAR);
@@ -111,7 +116,7 @@ public:
 			data.get()[1] = 0;
 			data.get()[2] = 255;
 			Tex t;
-			(void)t.wrap(1, 1, 24, 0, data, 0);
+			(void)t.wrap(GL_RGB, 1, 1, 24, 0, data, 0);
 
 			m_ErrorHandle = ogl_tex_wrap(&t, m_VFS, L"(error texture)");
 			(void)ogl_tex_set_filter(m_ErrorHandle, GL_LINEAR);
@@ -185,10 +190,6 @@ public:
 			return;
 		}
 
-		// Get some flags for later use
-		size_t flags = 0;
-		(void)ogl_tex_get_format(h, &flags, NULL);
-
 		// Initialise base colour from the texture
 		(void)ogl_tex_get_average_colour(h, &texture->m_BaseColour);
 
@@ -199,7 +200,7 @@ public:
 		// Prevent ogl_tex automatically generating mipmaps (which is slow and unwanted),
 		// by avoiding mipmapped filters unless the source texture already has mipmaps
 		GLint filter = texture->m_Properties.m_Filter;
-		if (!(flags & TEX_MIPMAPS))
+		if (ogl_tex_get_number_of_mimaps(h) == 1)
 		{
 			switch (filter)
 			{
@@ -216,7 +217,7 @@ public:
 		(void)ogl_tex_set_filter(h, filter);
 
 		// Upload to GL
-		if (!m_DisableGL && ogl_tex_upload(h, texture->m_Properties.m_Format) < 0)
+		if (!m_DisableGL && ogl_tex_upload(h) < 0)
 		{
 			LOGERROR("Texture failed to upload: \"%s\"", texture->m_Properties.m_Path.string8());
 
@@ -306,28 +307,102 @@ public:
 		m_TextureConverter.ConvertTexture(texture, sourcePath, looseCachePath, settings);
 	}
 
-	bool GenerateCachedTexture(const VfsPath& sourcePath, VfsPath& archiveCachePath)
+#if CONFIG2_MALI_ETCPACK
+	bool EtcpackETC2Compress(const VfsPath &in, const VfsPath &out, const CTextureConverter::Settings &settings)
+	{
+		bool hasAlpha = false;
+		{
+			shared_ptr<u8> file;
+			size_t fileSize;
+			if (m_VFS->LoadFile(in, file, fileSize) < 0)
+			{
+				LOGERROR("Failed to load texture \"%s\"", in.string8());
+				return false;
+			}
+
+			Tex tex;
+			if (tex.decode(file, fileSize) < 0)
+			{
+				LOGERROR("Failed to decode texture \"%s\"", in.string8());
+				return false;
+			}
+			hasAlpha = tex.hasAlpha();
+			if (hasAlpha && tex.m_Bpp == 32)
+			{
+				hasAlpha = false;
+				u8* data = tex.get_data();
+				for (size_t i = 0; i < tex.m_Width * tex.m_Height; ++i)
+				{
+					if (data[i*4+3] != 0xFF)
+					{
+						hasAlpha = true;
+						break;
+					}
+				}
+			}
+		}
+
+		Path inPath;
+		m_VFS->GetRealPath(in, inPath);
+		Path outPath;
+		shared_ptr<u8> dummy;
+		m_VFS->CreateFile(out, dummy, 0);
+		m_VFS->GetRealPath(out, outPath);
+		std::string command("etcpack \"./");
+		command += inPath.string8() + "\" \"./" + inPath.Parent().string8() + "\" -c etc2 -ktx";
+		if (settings.mipmap == CTextureConverter::MIP_TRUE)
+			command += " -mipmaps";
+		if (settings.alpha == CTextureConverter::ALPHA_PLAYER)
+			command += " -f R";
+		else {
+			if (hasAlpha)
+				command += " -f RGBA";
+			else
+				command += " -f RGB";
+		}
+
+		debug_printf(L"Executing %hs\n", command.c_str());
+		int res = system(command.c_str());
+		ENSURE(res == 0);
+		Path ktxFile = inPath.ChangeExtension(".ktx");
+		debug_printf(L"Renaming %ls to %ls\n", ktxFile.string().c_str(), outPath.string().c_str());
+		res = rename(OsString(ktxFile).c_str(), OsString(outPath).c_str());
+		ENSURE(res == 0);
+		return true;
+	}
+#endif
+
+	bool GenerateCachedTexture(const VfsPath& sourcePath, VfsPath& archiveCachePath, CTextureManager::CompressedTextureType textureType)
 	{
 		archiveCachePath = m_CacheLoader.ArchiveCachePath(sourcePath);
 
 		CTextureProperties textureProps(sourcePath);
 		CTexturePtr texture = CreateTexture(textureProps);
 		CTextureConverter::Settings settings = GetConverterSettings(texture);
+#if CONFIG2_MALI_ETCPACK
+		if (textureType == CTextureManager::S3TC || !(settings.format & (CTextureConverter::FMT_DXT1 |
+										 CTextureConverter::FMT_DXT3 |
+										 CTextureConverter::FMT_DXT5))) {
+#endif
+			if (!m_TextureConverter.ConvertTexture(texture, sourcePath, VfsPath("cache") / archiveCachePath, settings))
+				return false;
 
-		if (!m_TextureConverter.ConvertTexture(texture, sourcePath, VfsPath("cache") / archiveCachePath, settings))
-			return false;
+			while (true)
+			{
+				CTexturePtr textureOut;
+				VfsPath dest;
+				bool ok;
+				if (m_TextureConverter.Poll(textureOut, dest, ok))
+					return ok;
 
-		while (true)
-		{
-			CTexturePtr textureOut;
-			VfsPath dest;
-			bool ok;
-			if (m_TextureConverter.Poll(textureOut, dest, ok))
-				return ok;
-
-			// Spin-loop is dumb but it works okay for now
-			SDL_Delay(0);
+				// Spin-loop is dumb but it works okay for now
+				SDL_Delay(0);
+			}
+#if CONFIG2_MALI_ETCPACK
 		}
+		archiveCachePath = archiveCachePath.ChangeExtension(".ktx");
+		return EtcpackETC2Compress(sourcePath, VfsPath("cache") / archiveCachePath, settings);
+#endif
 	}
 
 	bool MakeProgress()
@@ -608,9 +683,7 @@ size_t CTexture::GetHeight() const
 
 bool CTexture::HasAlpha() const
 {
-	size_t flags = 0;
-	(void)ogl_tex_get_format(m_Handle, &flags, 0);
-	return (flags & TEX_ALPHA) != 0;
+	return ogl_tex_has_alpha(m_Handle);
 }
 
 u32 CTexture::GetBaseColour() const
@@ -653,9 +726,9 @@ bool CTextureManager::MakeProgress()
 	return m->MakeProgress();
 }
 
-bool CTextureManager::GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath)
+bool CTextureManager::GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath, CompressedTextureType textureType)
 {
-	return m->GenerateCachedTexture(path, outputPath);
+	return m->GenerateCachedTexture(path, outputPath, textureType);
 }
 
 size_t CTextureManager::GetBytesUploaded() const

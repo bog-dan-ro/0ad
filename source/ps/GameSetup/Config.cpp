@@ -30,7 +30,6 @@
 
 CStrW g_CursorName = L"test";
 
-bool g_NoGLS3TC = false;
 bool g_NoGLAutoMipmap = false;
 bool g_NoGLVBO = false;
 
@@ -91,7 +90,6 @@ static void LoadGlobals()
 {
 	CFG_GET_VAL("vsync", g_VSync);
 
-	CFG_GET_VAL("nos3tc", g_NoGLS3TC);
 	CFG_GET_VAL("noautomipmap", g_NoGLAutoMipmap);
 	CFG_GET_VAL("novbo", g_NoGLVBO);
 	CFG_GET_VAL("pauseonfocusloss", g_PauseOnFocusLoss);
