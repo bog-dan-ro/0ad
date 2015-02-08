@@ -36,7 +36,7 @@ public:
 	 * @param mod path to data/mods/foo directory, containing files for conversion
 	 * @param tempdir path to a writable directory for temporary files
 	 */
-	CArchiveBuilder(const OsPath& mod, const OsPath& tempdir);
+	CArchiveBuilder(const OsPath& mod, const OsPath& tempdir, const OsPath& compressTool);
 
 	~CArchiveBuilder();
 
@@ -64,6 +64,7 @@ private:
 	std::vector<VfsPath> m_Files;
 	OsPath m_TempDir;
 	size_t m_NumBaseMods;
+	const OsPath& m_CompressTextureTool;
 };
 
 #endif // INCLUDED_ARCHIVEBUILDER

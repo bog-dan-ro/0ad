@@ -28,8 +28,8 @@
 
 #include <boost/algorithm/string.hpp>
 
-CArchiveBuilder::CArchiveBuilder(const OsPath& mod, const OsPath& tempdir) :
-	m_TempDir(tempdir), m_NumBaseMods(0)
+CArchiveBuilder::CArchiveBuilder(const OsPath& mod, const OsPath& tempdir, const OsPath &compressTool) :
+	m_TempDir(tempdir), m_NumBaseMods(0), m_CompressTextureTool(compressTool)
 {
 	m_VFS = CreateVfs(20*MiB);
 
@@ -98,7 +98,7 @@ void CArchiveBuilder::Build(const OsPath& archive, bool compress)
 		{
 			VfsPath cachedPath;
 			debug_printf("Converting texture %s\n", realPath.string8().c_str());
-			bool ok = textureManager.GenerateCachedTexture(path, cachedPath);
+			bool ok = textureManager.GenerateCachedTexture(path, cachedPath, m_CompressTextureTool );
 			ENSURE(ok);
 
 			OsPath cachedRealPath;

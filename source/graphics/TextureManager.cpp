@@ -318,28 +318,91 @@ public:
 		m_TextureConverter.ConvertTexture(texture, sourcePath, looseCachePath, settings);
 	}
 
-	bool GenerateCachedTexture(const VfsPath& sourcePath, VfsPath& archiveCachePath)
+	bool ExternalCompressTool(const VfsPath &in, const VfsPath &out, const CTextureConverter::Settings &settings, const Path &compressTool)
+	{
+		bool hasAlpha = false;
+		{
+			shared_ptr<u8> file;
+			size_t fileSize;
+			if (m_VFS->LoadFile(in, file, fileSize) < 0)
+			{
+				LOGERROR("Failed to load texture \"%s\"", in.string8());
+				return false;
+			}
+
+			Tex tex;
+			if (tex.decode(file, fileSize) < 0)
+			{
+				LOGERROR("Failed to decode texture \"%s\"", in.string8());
+				return false;
+			}
+			hasAlpha = tex.hasAlpha();
+			if (hasAlpha && tex.m_Bpp == 32)
+			{
+				hasAlpha = false;
+				u8* data = tex.get_data();
+				for (size_t i = 0; i < tex.m_Width * tex.m_Height; ++i)
+				{
+					if (data[i*4+3] != 0xFF)
+					{
+						hasAlpha = true;
+						break;
+					}
+				}
+			}
+		}
+
+		Path inPath;
+		Path outPath;
+		{
+			m_VFS->GetRealPath(in, inPath);
+			shared_ptr<u8> dummy;
+			m_VFS->CreateFile(out, dummy, 0);
+			m_VFS->GetRealPath(out, outPath);
+		}
+		std::string command(compressTool.string8() + " -in \"");
+		command += inPath.string8() + "\" -out \"" + outPath.string8() + "\"";
+		if (settings.mipmap == CTextureConverter::MIP_TRUE)
+			command += " -mipmaps";
+		if (hasAlpha)
+			command += " -f RGBA";
+		else
+			command += " -f RGB";
+
+		debug_printf("Executing %s\n", command.c_str());
+		int res = system(command.c_str());
+		ENSURE(res == 0);
+		return res == 0;
+	}
+
+	bool GenerateCachedTexture(const VfsPath& sourcePath, VfsPath& archiveCachePath, const Path &compressTool)
 	{
 		archiveCachePath = m_CacheLoader.ArchiveCachePath(sourcePath);
 
 		CTextureProperties textureProps(sourcePath);
 		CTexturePtr texture = CreateTexture(textureProps);
 		CTextureConverter::Settings settings = GetConverterSettings(texture);
+		if (compressTool.empty() ||
+				settings.format == CTextureConverter::FMT_ALPHA ||
+				!(settings.format & (CTextureConverter::FMT_DXT1 |
+										 CTextureConverter::FMT_DXT3 |
+										 CTextureConverter::FMT_DXT5))) {
+			if (!m_TextureConverter.ConvertTexture(texture, sourcePath, VfsPath("cache") / archiveCachePath, settings))
+				return false;
 
-		if (!m_TextureConverter.ConvertTexture(texture, sourcePath, VfsPath("cache") / archiveCachePath, settings))
-			return false;
+			while (true)
+			{
+				CTexturePtr textureOut;
+				VfsPath dest;
+				bool ok;
+				if (m_TextureConverter.Poll(textureOut, dest, ok))
+					return ok;
 
-		while (true)
-		{
-			CTexturePtr textureOut;
-			VfsPath dest;
-			bool ok;
-			if (m_TextureConverter.Poll(textureOut, dest, ok))
-				return ok;
-
-			// Spin-loop is dumb but it works okay for now
-			SDL_Delay(0);
+				// Spin-loop is dumb but it works okay for now
+				SDL_Delay(0);
+			}
 		}
+		return ExternalCompressTool(sourcePath, VfsPath("cache") / archiveCachePath, settings, compressTool);
 	}
 
 	bool MakeProgress()
@@ -663,9 +726,9 @@ bool CTextureManager::MakeProgress()
 	return m->MakeProgress();
 }
 
-bool CTextureManager::GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath)
+bool CTextureManager::GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath, const Path &compressTool)
 {
-	return m->GenerateCachedTexture(path, outputPath);
+	return m->GenerateCachedTexture(path, outputPath, compressTool);
 }
 
 size_t CTextureManager::GetBytesUploaded() const

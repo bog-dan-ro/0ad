@@ -109,7 +109,7 @@ public:
 	 * is intended for pre-caching textures in release archives.
 	 * @return true on success
 	 */
-	bool GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath);
+	bool GenerateCachedTexture(const VfsPath& path, VfsPath& outputPath, const Path &compressTool);
 
 	/**
 	 * Returns total number of bytes uploaded for all current texture.

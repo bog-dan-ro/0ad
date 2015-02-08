@@ -476,7 +476,18 @@ static void RunGameOrAtlas(int argc, const char* argv[])
 		else
 			zip = mod.Filename().ChangeExtension(L".zip");
 
-		CArchiveBuilder builder(mod, paths.Cache(), args.Has("etc2") ? CArchiveBuilder::ETC2 : CArchiveBuilder::S3TC);
+		OsPath compressTool;
+		if (args.Has("externalTextureCompressTool")) {
+			compressTool = args.Get("externalTextureCompressTool");
+			if (compressTool.empty())
+				compressTool = args.GetArg0().Parent() / L"texturecompress.sh";
+		}
+		if (args.Has("etct")) {
+			compressTool = args.Get("etct");
+			if (compressTool.empty())
+				compressTool = args.GetArg0().Parent() / L"texturecompress.sh";
+		}
+		CArchiveBuilder builder(mod, paths.Cache(), compressTool);
 
 		// Add mods provided on the command line
 		// NOTE: We do not handle mods in the user mod path here
