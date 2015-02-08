@@ -29,6 +29,7 @@
 #include "lib/byte_order.h"
 #include "tex_codec.h"
 #include "lib/bits.h"
+#include "lib/ogl.h"
 
 #pragma pack(push, 1)
 
@@ -67,7 +68,7 @@ TgaHeader;
 #pragma pack(pop)
 
 
-Status TexCodecTga::transform(Tex* UNUSED(t), size_t UNUSED(transforms)) const
+Status TexCodecTga::transform(Tex* UNUSED(t), size_t UNUSED(glFormat), int UNUSED(flags)) const
 {
 	return INFO::TEX_CODEC_CANNOT_HANDLE;
 }
@@ -123,12 +124,24 @@ Status TexCodecTga::decode(rpU8 data, size_t UNUSED(size), Tex* RESTRICT t) cons
 
 	size_t flags = 0;
 	flags |= (desc & TGA_TOP_DOWN)? TEX_TOP_DOWN : TEX_BOTTOM_UP;
-	if(desc & 0x0F)	// alpha bits
-		flags |= TEX_ALPHA;
-	if(bpp == 8)
-		flags |= TEX_GREY;
-	if(type == TGA_TRUE_COLOUR)
-		flags |= TEX_BGR;
+
+	t->m_glType = GL_UNSIGNED_BYTE;
+
+	switch (bpp) {
+	case 8:
+		t->m_glFormat = GL_ALPHA;
+	case 16:
+		t->m_glFormat = GL_LUMINANCE_ALPHA;
+		break;
+	case 24:
+		t->m_glFormat = (type == TGA_TRUE_COLOUR) ? GL_BGR : GL_RGB;
+		break;
+	case 32:
+		t->m_glFormat = (type == TGA_TRUE_COLOUR) ? GL_BGRA_EXT : GL_RGBA;
+		break;
+	default:
+		return ERR::TEX_FMT_INVALID;
+	}
 
 	// sanity checks
 	// .. storing right-to-left is just stupid;
@@ -140,6 +153,7 @@ Status TexCodecTga::decode(rpU8 data, size_t UNUSED(size), Tex* RESTRICT t) cons
 	t->m_Height = h;
 	t->m_Bpp    = bpp;
 	t->m_Flags  = flags;
+	t->m_glInternalFormat = t->m_glFormat;
 	return INFO::OK;
 }
 
@@ -149,13 +163,11 @@ Status TexCodecTga::encode(Tex* RESTRICT t, DynArray* RESTRICT da) const
 	u8 img_desc = 0;
 	if(t->m_Flags & TEX_TOP_DOWN)
 		img_desc |= TGA_TOP_DOWN;
+
 	if(t->m_Bpp == 32)
 		img_desc |= 8;	// size of alpha channel
-	TgaImgType img_type = (t->m_Flags & TEX_GREY)? TGA_GREY : TGA_TRUE_COLOUR;
 
-	size_t transforms = t->m_Flags;
-	transforms &= ~TEX_ORIENTATION;	// no flip needed - we can set top-down bit.
-	transforms ^= TEX_BGR;			// TGA is native BGR.
+	TgaImgType img_type = (t->m_glFormat == GL_ALPHA || t->m_glFormat == GL_LUMINANCE || t->m_glFormat == GL_LUMINANCE_ALPHA)? TGA_GREY : TGA_TRUE_COLOUR;
 
 	const TgaHeader hdr =
 	{
@@ -170,6 +182,6 @@ Status TexCodecTga::encode(Tex* RESTRICT t, DynArray* RESTRICT da) const
 		img_desc
 	};
 	const size_t hdr_size = sizeof(hdr);
-	return tex_codec_write(t, transforms, &hdr, hdr_size, da);
+	return tex_codec_write(t, (t->hasAlpha() ? GL_BGRA_EXT : GL_BGR), 0, &hdr, hdr_size, da);
 }
 

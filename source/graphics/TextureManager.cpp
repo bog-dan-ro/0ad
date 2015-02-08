@@ -84,12 +84,18 @@ std::size_t hash_value(const CTextureProperties& v)
 	return h(v);
 }
 
+#if CONFIG2_KTX
+# define EXT L".ktx"
+#else
+# define EXT L".dds"
+#endif
+
 class CTextureManagerImpl
 {
 	friend class CTexture;
 public:
 	CTextureManagerImpl(PIVFS vfs, bool highQuality, bool disableGL) :
-		m_VFS(vfs), m_CacheLoader(vfs, L".dds"), m_DisableGL(disableGL), m_TextureConverter(vfs, highQuality),
+		m_VFS(vfs), m_CacheLoader(vfs, EXT), m_DisableGL(disableGL), m_TextureConverter(vfs, highQuality),
 		m_DefaultHandle(0), m_ErrorHandle(0)
 	{
 		// Initialise some textures that will always be available,
@@ -104,7 +110,7 @@ public:
 			data.get()[1] = 64;
 			data.get()[2] = 64;
 			Tex t;
-			(void)t.wrap(1, 1, 24, 0, data, 0);
+			(void)t.wrap(GL_RGB, 1, 1, 24, 0, data, 0);
 
 			m_DefaultHandle = ogl_tex_wrap(&t, m_VFS, L"(default texture)");
 			(void)ogl_tex_set_filter(m_DefaultHandle, GL_LINEAR);
@@ -121,7 +127,7 @@ public:
 			data.get()[1] = 0;
 			data.get()[2] = 255;
 			Tex t;
-			(void)t.wrap(1, 1, 24, 0, data, 0);
+			(void)t.wrap(GL_RGB, 1, 1, 24, 0, data, 0);
 
 			m_ErrorHandle = ogl_tex_wrap(&t, m_VFS, L"(error texture)");
 			(void)ogl_tex_set_filter(m_ErrorHandle, GL_LINEAR);
@@ -195,10 +201,6 @@ public:
 			return;
 		}
 
-		// Get some flags for later use
-		size_t flags = 0;
-		(void)ogl_tex_get_format(h, &flags, NULL);
-
 		// Initialise base colour from the texture
 		(void)ogl_tex_get_average_colour(h, &texture->m_BaseColour);
 
@@ -209,7 +211,7 @@ public:
 		// Prevent ogl_tex automatically generating mipmaps (which is slow and unwanted),
 		// by avoiding mipmapped filters unless the source texture already has mipmaps
 		GLint filter = texture->m_Properties.m_Filter;
-		if (!(flags & TEX_MIPMAPS))
+		if (ogl_tex_get_number_of_mimaps(h) == 1)
 		{
 			switch (filter)
 			{
@@ -226,7 +228,7 @@ public:
 		(void)ogl_tex_set_filter(h, filter);
 
 		// Upload to GL
-		if (!m_DisableGL && ogl_tex_upload(h, texture->m_Properties.m_Format) < 0)
+		if (!m_DisableGL && ogl_tex_upload(h) < 0)
 		{
 			LOGERROR("Texture failed to upload: \"%s\"", texture->m_Properties.m_Path.string8());
 
@@ -618,9 +620,7 @@ size_t CTexture::GetHeight() const
 
 bool CTexture::HasAlpha() const
 {
-	size_t flags = 0;
-	(void)ogl_tex_get_format(m_Handle, &flags, 0);
-	return (flags & TEX_ALPHA) != 0;
+	return ogl_tex_has_alpha(m_Handle);
 }
 
 u32 CTexture::GetBaseColour() const

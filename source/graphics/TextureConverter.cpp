@@ -27,6 +27,7 @@
 #include "ps/CLogger.h"
 #include "ps/CStr.h"
 #include "ps/Profiler2.h"
+#include "ps/Util.h"
 #include "ps/XML/Xeromyces.h"
 
 #if CONFIG2_NVTT
@@ -338,12 +339,13 @@ bool CTextureConverter::ConvertTexture(const CTexturePtr& texture, const VfsPath
 	}
 
 	// Check whether there's any alpha channel
-	bool hasAlpha = ((tex.m_Flags & TEX_ALPHA) != 0);
+	bool hasAlpha = tex.hasAlpha();
 
 	if (settings.format == FMT_ALPHA)
 	{
 		// Convert to uncompressed 8-bit with no mipmaps
-		if (tex.transform_to((tex.m_Flags | TEX_GREY) & ~(TEX_DXT | TEX_MIPMAPS | TEX_ALPHA)) < 0)
+		tex.m_numberOfMipmapLevels = 1;
+		if (tex.transform(GL_ALPHA) < 0)
 		{
 			LOGERROR("Failed to transform texture \"%s\"", src.string8());
 			return false;
@@ -354,19 +356,20 @@ bool CTextureConverter::ConvertTexture(const CTexturePtr& texture, const VfsPath
 		// TODO: grayscale images will fail on some systems
 		// see http://trac.wildfiregames.com/ticket/1640
 		// (plain_transform doesn't know how to construct the alpha channel)
-		if (tex.m_Flags & TEX_GREY)
+		if (tex.m_glFormat == GL_LUMINANCE)
 		{
 			LOGERROR("Failed to convert grayscale texture \"%s\" - only RGB textures are currently supported", src.string8());
 			return false;
 		}
 
 		// Convert to uncompressed BGRA with no mipmaps
-		if (tex.transform_to((tex.m_Flags | TEX_BGR | TEX_ALPHA) & ~(TEX_DXT | TEX_MIPMAPS)) < 0)
+		if (tex.transform(GL_BGRA_EXT) < 0)
 		{
 			LOGERROR("Failed to transform texture \"%s\"", src.string8());
 			return false;
 		}
 	}
+
 
 	// Check if the texture has all alpha=255, so we can automatically
 	// switch from DXT3/DXT5 to DXT1 with no loss
@@ -519,19 +522,28 @@ bool CTextureConverter::Poll(CTexturePtr& texture, VfsPath& dest, bool& ok)
 	shared_ptr<u8> file;
 	AllocateAligned(file, size, maxSectorSize);
 	memcpy(file.get(), &result->output.buffer[0], size);
-	if (m_VFS->CreateFile(result->dest, file, size) < 0)
+#ifdef CONFIG2_KTX
+	if (result->dest.Extension() == L".ktx")
 	{
-		// error writing file
-		ok = false;
-		return true;
+		Tex t;
+		WARN_IF_ERR(t.decode(file, size));
+		tex_write(&t, result->dest, m_VFS);
 	}
-
+	else
+#endif
+	{
+		if (m_VFS->CreateFile(result->dest, file, size) < 0)
+		{
+			// error writing file
+			ok = false;
+			return true;
+		}
+	}
 	// Succeeded in converting texture
 	texture = result->texture;
 	dest = result->dest;
 	ok = true;
 	return true;
-
 #else // #if CONFIG2_NVTT
 	return false;
 #endif

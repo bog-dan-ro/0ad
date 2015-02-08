@@ -19,6 +19,7 @@
 #define PS_UTIL_H
 
 #include "lib/file/vfs/vfs_path.h"
+#include "lib/file/vfs/vfs.h"
 
 struct Tex;
 
@@ -29,6 +30,6 @@ extern const wchar_t* ErrorString(int err);
 extern void WriteScreenshot(const VfsPath& extension);
 extern void WriteBigScreenshot(const VfsPath& extension, int tiles);
 
-extern Status tex_write(Tex* t, const VfsPath& filename);
+extern Status tex_write(Tex* t, const VfsPath& filename, PIVFS fs = 0);
 
 #endif // PS_UTIL_H

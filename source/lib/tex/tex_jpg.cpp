@@ -30,6 +30,7 @@
 
 #include "lib/external_libraries/libjpeg.h"
 #include "lib/allocators/shared_ptr.h"
+#include "lib/ogl.h"
 
 #include "tex_codec.h"
 
@@ -423,7 +424,7 @@ JpgErrorMgr::JpgErrorMgr(jpeg_decompress_struct& cinfo)
 //-----------------------------------------------------------------------------
 
 
-Status TexCodecJpg::transform(Tex* UNUSED(t), size_t UNUSED(transforms)) const
+Status TexCodecJpg::transform(Tex* UNUSED(t), size_t UNUSED(glFormat), int UNUSED(flags)) const
 {
 	return INFO::TEX_CODEC_CANNOT_HANDLE;
 }
@@ -451,13 +452,9 @@ static Status jpg_decode_impl(rpU8 data, size_t size, jpeg_decompress_struct* ci
 
 	// set libjpg output format. we cannot go with the default because
 	// Photoshop writes non-standard CMYK files that must be converted to RGB.
-	size_t flags = 0;
 	cinfo->out_color_space = JCS_RGB;
 	if(cinfo->num_components == 1)
-	{
-		flags |= TEX_GREY;
 		cinfo->out_color_space = JCS_GRAYSCALE;
-	}
 
 	// lower quality, but faster
 	cinfo->dct_method = JDCT_IFAST;
@@ -503,8 +500,25 @@ static Status jpg_decode_impl(rpU8 data, size_t size, jpeg_decompress_struct* ci
 	if(cinfo->err->num_warnings != 0)
 		ret = WARN::TEX_INVALID_DATA;
 
+	size_t glFormat = 0;
+	switch (bpp) {
+	case 8:
+		glFormat = GL_ALPHA;
+		break;
+	case 16:
+		glFormat = GL_LUMINANCE_ALPHA;
+		break;
+	case 24:
+		glFormat = GL_RGB;
+		break;
+	case 32:
+		glFormat = GL_RGBA;
+		break;
+	default:
+		break;
+	}
 	// store image info and validate
-	return ret | t->wrap(w,h,bpp,flags,img,0);
+	return ret | t->wrap(glFormat, w, h, bpp, 0, img, 0);
 }
 
 
@@ -527,7 +541,7 @@ static Status jpg_encode_impl(Tex* t, jpeg_compress_struct* cinfo, DynArray* da)
 	jpeg_start_compress(cinfo, TRUE);
 
 	// if BGR, convert to RGB.
-	WARN_IF_ERR(t->transform_to(t->m_Flags & ~TEX_BGR));
+	WARN_IF_ERR(t->transform(GL_RGB, t->m_Flags));
 
 	const size_t pitch = t->m_Width * t->m_Bpp / 8;
 	u8* data = t->get_data();

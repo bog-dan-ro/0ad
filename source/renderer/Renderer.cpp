@@ -2023,7 +2023,7 @@ int CRenderer::LoadAlphaMaps()
 
 	// upload the composite texture
 	Tex t;
-	(void)t.wrap(total_w, total_h, 8, TEX_GREY, data, 0);
+	(void)t.wrap(GL_ALPHA, total_w, total_h, 8, 0, data, 0);
 	
 	/*VfsPath filename("blendtex.png");
 	
@@ -2046,7 +2046,7 @@ int CRenderer::LoadAlphaMaps()
 	m_hCompositeAlphaMap = ogl_tex_wrap(&t, g_VFS, key);
 	(void)ogl_tex_set_filter(m_hCompositeAlphaMap, GL_LINEAR);
 	(void)ogl_tex_set_wrap  (m_hCompositeAlphaMap, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-	int ret = ogl_tex_upload(m_hCompositeAlphaMap, GL_ALPHA, 0, 0);
+	int ret = ogl_tex_upload(m_hCompositeAlphaMap);
 
 	return ret;
 }

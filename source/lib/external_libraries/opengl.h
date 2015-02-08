@@ -72,4 +72,16 @@
 # endif
 #endif
 
+#ifndef GL_BGR
+# define GL_BGR 0x80E0
+#endif
+
+#ifndef GL_RED
+# define GL_RED 0x1903
+#endif
+
+#ifndef GL_RG
+# define GL_RG 0x8227
+#endif
+
 #endif	// #ifndef INCLUDED_OPENGL

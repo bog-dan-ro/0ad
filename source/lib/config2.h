@@ -97,6 +97,10 @@
 # define CONFIG2_NVTT 1
 #endif
 
+#ifndef CONFIG2_KTX
+# define CONFIG2_KTX 1
+#endif
+
 // allow use of lobby
 #ifndef CONFIG2_LOBBY
 # define CONFIG2_LOBBY 1

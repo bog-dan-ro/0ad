@@ -80,7 +80,7 @@ Textures with specific quality needs can override this via
 ogl_tex_set_* or ogl_tex_upload parameters.
 
 Finally, provision is made for coping with hardware/drivers lacking support
-for S3TC decompression or mipmap generation: that can be done in software,
+for texture decompression or mipmap generation: that can be done in software,
 if necessary. This avoids the need for alternate asset formats and
 lowers hardware requirements. While such cards probably won't run
 the app very well (due to their age and lack of other capabilities),
@@ -316,7 +316,6 @@ extern Status ogl_tex_set_anisotropy(Handle ht, GLfloat anisotropy);
 
 enum OglTexOverrides
 {
-	OGL_TEX_S3TC,
 	OGL_TEX_AUTO_MIPMAP_GEN,
 	OGL_TEX_ANISOTROPY
 };
@@ -352,7 +351,7 @@ extern void ogl_tex_override(OglTexOverrides what, OglTexAllow allow);
 * - enables texturing on TMU 0 and binds the texture to it;
 * - frees the texel data! see ogl_tex_get_data.
 */
-extern Status ogl_tex_upload(const Handle ht, GLenum fmt_ovr = 0, int q_flags_ovr = 0, GLint int_fmt_ovr = 0);
+extern Status ogl_tex_upload(const Handle ht);
 
 
 //
@@ -370,16 +369,13 @@ extern Status ogl_tex_upload(const Handle ht, GLenum fmt_ovr = 0, int q_flags_ov
 */
 extern Status ogl_tex_get_size(Handle ht, size_t* w, size_t* h, size_t* bpp);
 
+size_t ogl_tex_get_number_of_mimaps(Handle ht);
+
 /**
-* Retrieve pixel format of the texture.
-*
 * @param ht Texture handle
-* @param flags optional; will be filled with TexFlags
-* @param fmt optional; will be filled with GL format
-*        (it is determined during ogl_tex_upload and 0 before then)
-* @return Status
+* @return True is the texture has alpha
 */
-extern Status ogl_tex_get_format(Handle ht, size_t* flags, GLenum* fmt);
+extern bool ogl_tex_has_alpha(Handle ht);
 
 /**
 * Retrieve pixel data of the texture.
@@ -446,42 +442,6 @@ extern Status ogl_tex_bind(Handle ht, size_t unit = 0);
 * Return the GL handle of the loaded texture in *id, or 0 on failure.
 */
 extern Status ogl_tex_get_texture_id(Handle ht, GLuint* id);
-
-/**
-* (partially) Transform pixel format of the texture.
-*
-* @param ht Texture handle.
-* @param flags the TexFlags that are to be @em changed.
-* @return Status
-* @see tex_transform
-*
-* Must be called before uploading (raises a warning if called afterwards).
-*/
-extern Status ogl_tex_transform(Handle ht, size_t flags);
-
-/**
-* Transform pixel format of the texture.
-*
-* @param ht Texture handle.
-* @param new_flags Flags desired new TexFlags indicating pixel format.
-* @return Status
-* @see tex_transform
-*
-* Must be called before uploading (raises a warning if called afterwards).
-*
-* Note: this is equivalent to ogl_tex_transform(ht, ht_flags^new_flags).
-*/
-extern Status ogl_tex_transform_to(Handle ht, size_t new_flags);
-
-/**
- * Return whether native S3TC texture compression support is available.
- * If not, textures will be decompressed automatically, hurting performance.
- *
- * @return true if native S3TC supported.
- *
- * ogl_tex_upload must be called at least once before this.
- */
-extern bool ogl_tex_has_s3tc();
 
 /**
  * Return whether anisotropic filtering support is available.

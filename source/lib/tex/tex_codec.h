@@ -69,12 +69,10 @@ public:
 	 * transform the texture's pixel format.
 	 *
 	 * @param t texture object
-	 * @param transforms: OR-ed combination of TEX_* flags that are to
-	 * be changed. note: the codec needs only handle situations specific
-	 * to its format; generic pixel format transforms are handled by
-	 * the caller.
+	 * @param glFormat, new (uncompressed) pixel format (GL_ALPHA, GL_RGB, GL_RGBA, GL_LUMINANCE, etc.)
+	 * @param filp - true if the image will be flipped vertically
 	 **/
-	virtual Status transform(Tex* t, size_t transforms) const = 0;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const = 0;
 
 	/**
 	 * indicate if the data appears to be an instance of this codec's header,
@@ -121,70 +119,84 @@ class TexCodecPng:ITexCodec {
 public:
 	virtual Status decode(u8* data, size_t size, Tex* RESTRICT t) const;
 	virtual Status encode(Tex* RESTRICT t, DynArray* RESTRICT da) const;
-	virtual Status transform(Tex* t, size_t transforms) const;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const;
 	virtual bool is_hdr(const u8* file) const;
 	virtual bool is_ext(const OsPath& extension) const;
 	virtual size_t hdr_size(const u8* file) const;
 	virtual const wchar_t* get_name() const {
 		static const wchar_t *name = L"png";
 		return name;
-	};
+	}
 };
 
 class TexCodecJpg:ITexCodec {
 public:
 	virtual Status decode(u8* data, size_t size, Tex* RESTRICT t) const;
 	virtual Status encode(Tex* RESTRICT t, DynArray* RESTRICT da) const;
-	virtual Status transform(Tex* t, size_t transforms) const;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const;
 	virtual bool is_hdr(const u8* file) const;
 	virtual bool is_ext(const OsPath& extension) const;
 	virtual size_t hdr_size(const u8* file) const;
 	virtual const wchar_t* get_name() const {
 		static const wchar_t *name = L"jpg";
 		return name;
-	};
+	}
 };
 
 class TexCodecDds:ITexCodec {
 public:
 	virtual Status decode(u8* data, size_t size, Tex* RESTRICT t) const;
 	virtual Status encode(Tex* RESTRICT t, DynArray* RESTRICT da) const;
-	virtual Status transform(Tex* t, size_t transforms) const;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const;
 	virtual bool is_hdr(const u8* file) const;
 	virtual bool is_ext(const OsPath& extension) const;
 	virtual size_t hdr_size(const u8* file) const;
 	virtual const wchar_t* get_name() const {
 		static const wchar_t *name = L"dds";
 		return name;
-	};
+	}
 };
 
 class TexCodecTga:ITexCodec {
 public:
 	virtual Status decode(u8* data, size_t size, Tex* RESTRICT t) const;
 	virtual Status encode(Tex* RESTRICT t, DynArray* RESTRICT da) const;
-	virtual Status transform(Tex* t, size_t transforms) const;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const;
 	virtual bool is_hdr(const u8* file) const;
 	virtual bool is_ext(const OsPath& extension) const;
 	virtual size_t hdr_size(const u8* file) const;
 	virtual const wchar_t* get_name() const {
 		static const wchar_t *name = L"tga";
 		return name;
-	};
+	}
 };
 
 class TexCodecBmp:ITexCodec {
 public:
 	virtual Status decode(u8* data, size_t size, Tex* RESTRICT t) const;
 	virtual Status encode(Tex* RESTRICT t, DynArray* RESTRICT da) const;
-	virtual Status transform(Tex* t, size_t transforms) const;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const;
 	virtual bool is_hdr(const u8* file) const;
 	virtual bool is_ext(const OsPath& extension) const;
 	virtual size_t hdr_size(const u8* file) const;
 	virtual const wchar_t* get_name() const {
 		static const wchar_t *name = L"bmp";
 		return name;
-	};
+	}
+};
+
+class TexCodecKtx:ITexCodec {
+public:
+	virtual Status decode(u8* data, size_t size, Tex* RESTRICT t) const;
+	virtual Status encode(Tex* RESTRICT t, DynArray* RESTRICT da) const;
+	virtual Status transform(Tex* t, size_t glFormat, int flags) const;
+	virtual bool is_hdr(const u8* file) const;
+	virtual bool is_ext(const OsPath& extension) const;
+	virtual size_t hdr_size(const u8* file) const;
+	virtual const wchar_t* get_name() const {
+		static const wchar_t *name = L"ktx";
+		return name;
+	}
 };
 
 /**
@@ -215,11 +227,11 @@ extern Status tex_codec_for_header(const u8* data, size_t data_size, const ITexC
  * tries each codec's transform method once, or until one indicates success.
  *
  * @param t texture object
- * @param transforms: OR-ed combination of TEX_* flags that are to
+ * @param transforms: OR-ed combination of TransformFlags that are to
  * be changed.
  * @return Status
  **/
-extern Status tex_codec_transform(Tex* t, size_t transforms);
+extern Status tex_codec_transform(Tex* t, size_t glFormat, int flags);
 
 /**
  * allocate an array of row pointers that point into the given texture data.
@@ -253,6 +265,6 @@ extern std::vector<RowPtr> tex_codec_alloc_rows(const u8* data, size_t h, size_t
  * @param da output data array (will be expanded as necessary)
  * @return Status
  **/
-extern Status tex_codec_write(Tex* t, size_t transforms, const void* hdr, size_t hdr_size, DynArray* da);
+extern Status tex_codec_write(Tex* t, size_t glFormat, int flags, const void* hdr, size_t hdr_size, DynArray* da);
 
 #endif	 // #ifndef INCLUDED_TEX_CODEC

@@ -98,84 +98,6 @@ static bool are_mipmaps_needed(size_t width, size_t height, GLint filter)
 	}
 }
 
-
-static bool fmt_is_s3tc(GLenum fmt)
-{
-	switch(fmt)
-	{
-	case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-	case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-#if !CONFIG2_GLES
-	case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-	case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-#endif
-		return true;
-	default:
-		return false;
-	}
-}
-
-
-// determine OpenGL texture format, given <bpp> and Tex <flags>.
-static GLint choose_fmt(size_t bpp, size_t flags)
-{
-	const bool alpha = (flags & TEX_ALPHA) != 0;
-	const bool bgr   = (flags & TEX_BGR  ) != 0;
-	const bool grey  = (flags & TEX_GREY ) != 0;
-	const size_t dxt   = flags & TEX_DXT;
-
-	// S3TC
-	if(dxt != 0)
-	{
-		switch(dxt)
-		{
-		case DXT1A:
-			return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-		case 1:
-			return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-#if !CONFIG2_GLES
-		case 3:
-			return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-		case 5:
-			return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-#endif
-		default:
-			DEBUG_WARN_ERR(ERR::LOGIC);	// invalid DXT value
-			return 0;
-		}
-	}
-
-	// uncompressed
-	switch(bpp)
-	{
-	case 8:
-		ENSURE(grey);
-		return GL_LUMINANCE;
-	case 16:
-		return GL_LUMINANCE_ALPHA;
-	case 24:
-		ENSURE(!alpha);
-#if CONFIG2_GLES
-		// GLES never supports BGR
-		ENSURE(!bgr);
-		return GL_RGB;
-#else
-		return bgr? GL_BGR : GL_RGB;
-#endif
-	case 32:
-		ENSURE(alpha);
-		// GLES can support BGRA via GL_EXT_texture_format_BGRA8888
-		// (TODO: can we rely on support for that extension?)
-		return bgr? GL_BGRA_EXT : GL_RGBA;
-	default:
-		DEBUG_WARN_ERR(ERR::LOGIC);	// invalid bpp
-		return 0;
-	}
-
-	UNREACHABLE;
-}
-
-
 //----------------------------------------------------------------------------
 // quality mechanism
 //----------------------------------------------------------------------------
@@ -217,70 +139,6 @@ void ogl_tex_set_defaults(int q_flags, GLint filter)
 		default_filter = filter;
 	}
 }
-
-
-// choose an internal format for <fmt> based on the given q_flags.
-static GLint choose_int_fmt(GLenum fmt, int q_flags)
-{
-	// true => 4 bits per component; otherwise, 8
-	const bool half_bpp = (q_flags & OGL_TEX_HALF_BPP) != 0;
-
-	// early-out for S3TC textures: they don't need an internal format
-	// (because upload is via glCompressedTexImage2DARB), but we must avoid
-	// triggering the default case below. we might as well return a
-	// meaningful value (i.e. int_fmt = fmt).
-	if(fmt_is_s3tc(fmt))
-		return fmt;
-
-#if CONFIG2_GLES
-
-	UNUSED2(half_bpp);
-
-	// GLES only supports internal format == external format
-	return fmt;
-
-#else
-
-	switch(fmt)
-	{
-	// 8bpp
-	case GL_LUMINANCE:
-		return half_bpp? GL_LUMINANCE4 : GL_LUMINANCE8;
-	case GL_INTENSITY:
-		return half_bpp? GL_INTENSITY4 : GL_INTENSITY8;
-	case GL_ALPHA:
-		return half_bpp? GL_ALPHA4 : GL_ALPHA8;
-
-	// 16bpp
-	case GL_LUMINANCE_ALPHA:
-		return half_bpp? GL_LUMINANCE4_ALPHA4 : GL_LUMINANCE8_ALPHA8;
-
-	// 24bpp
-	case GL_RGB:
-	case GL_BGR:	// note: BGR can't be used as internal format
-		return half_bpp? GL_RGB4 : GL_RGB8;
-
-	// 32bpp
-	case GL_RGBA:
-	case GL_BGRA:	// note: BGRA can't be used as internal format
-		return half_bpp? GL_RGBA4 : GL_RGBA8;
-
-	default:
-		{
-		wchar_t buf[100];
-		swprintf_s(buf, ARRAY_SIZE(buf), L"choose_int_fmt: fmt 0x%x isn't covered! please add it", fmt);
-		DEBUG_DISPLAY_ERROR(buf);
-		DEBUG_WARN_ERR(ERR::LOGIC);	// given fmt isn't covered! please add it.
-		// fall back to a reasonable default
-		return half_bpp? GL_RGB4 : GL_RGB8;
-		}
-	}
-
-	UNREACHABLE;
-
-#endif	// #if CONFIG2_GLES
-}
-
 
 //----------------------------------------------------------------------------
 // texture state to allow seamless reload
@@ -407,13 +265,6 @@ struct OglTex
 
 	// allocated by OglTex_reload; indicates the texture is currently uploaded.
 	GLuint id;
-
-	// ogl_tex_upload calls choose_fmt to determine these from <t>.
-	// however, its caller may override those values via parameters.
-	// note: these are stored here to allow retrieving via ogl_tex_get_format;
-	// they are only used within ogl_tex_upload.
-	GLenum fmt;
-	GLint int_fmt;
 
 	OglTexState state;
 
@@ -706,7 +557,6 @@ Status ogl_tex_set_anisotropy(Handle ht, GLfloat anisotropy)
 
 // tristate; -1 is undecided
 static int have_auto_mipmap_gen = -1;
-static int have_s3tc = -1;
 static int have_anistropy = -1;
 
 // override the default decision and force/disallow use of the
@@ -718,9 +568,6 @@ void ogl_tex_override(OglTexOverrides what, OglTexAllow allow)
 
 	switch(what)
 	{
-	case OGL_TEX_S3TC:
-		have_s3tc = enable;
-		break;
 	case OGL_TEX_AUTO_MIPMAP_GEN:
 		have_auto_mipmap_gen = enable;
 		break;
@@ -735,7 +582,7 @@ void ogl_tex_override(OglTexOverrides what, OglTexAllow allow)
 
 
 // detect caps (via OpenGL extension list) and give an app_hook the chance to
-// override this (e.g. via list of card/driver combos on which S3TC breaks).
+// override this.
 // called once from the first ogl_tex_upload.
 static void detect_gl_upload_caps()
 {
@@ -748,18 +595,6 @@ static void detect_gl_upload_caps()
 	{
 		have_auto_mipmap_gen = ogl_HaveExtension("GL_SGIS_generate_mipmap");
 	}
-	if(have_s3tc == -1)
-	{
-#if CONFIG2_GLES
-		// some GLES implementations have GL_EXT_texture_compression_dxt1
-		// but that only supports DXT1 so we can't use it anyway
-		have_s3tc = 0;
-#else
-		// note: we don't bother checking for GL_S3_s3tc - it is incompatible
-		// and irrelevant (was never widespread).
-		have_s3tc = ogl_HaveExtensions(0, "GL_ARB_texture_compression", "GL_EXT_texture_compression_s3tc", NULL) == 0;
-#endif
-	}
 	if(have_anistropy == -1)
 	{
 		have_anistropy = ogl_HaveExtension("GL_EXT_texture_filter_anisotropic");
@@ -769,16 +604,6 @@ static void detect_gl_upload_caps()
 	if(AH_IS_DEFINED(override_gl_upload_caps))
 	{
 		ah_override_gl_upload_caps();
-	}
-	// no app hook defined - have our own crack at blacklisting some hardware.
-	else
-	{
-		const std::wstring cardName = gfx::CardName();
-		// rationale: janwas's laptop's S3 card blows up if S3TC is used
-		// (oh, the irony). it'd be annoying to have to share this between all
-		// projects, hence this default implementation here.
-		if(cardName == L"S3 SuperSavage/IXC 1014")
-			ogl_tex_override(OGL_TEX_S3TC, OGL_TEX_DISABLE);
 	}
 }
 
@@ -797,11 +622,11 @@ static Status get_mipmaps(Tex* t, GLint filter, int q_flags, int* plevels_to_ski
 	const bool need_mipmaps = are_mipmaps_needed(t->m_Width, t->m_Height, filter);
 	// .. does the image data include mipmaps? (stored as separate
 	//    images after the regular texels)
-	const bool includes_mipmaps = (t->m_Flags & TEX_MIPMAPS) != 0;
-	// .. is this texture in S3TC format? (more generally, "compressed")
-	const bool is_s3tc = (t->m_Flags & TEX_DXT) != 0;
+	const bool includes_mipmaps = t->m_numberOfMipmapLevels > 1;
+	// .. is this texture compressed ?
+	const bool is_compressed = t->m_glType == 0;
 
-	*plevels_to_skip = TEX_BASE_LEVEL_ONLY;
+	*plevels_to_skip = 0;
 	if(!need_mipmaps)
 		return INFO::OK;
 
@@ -827,13 +652,13 @@ static Status get_mipmaps(Tex* t, GLint filter, int q_flags, int* plevels_to_ski
 	// rationale: having tex_transform add mipmaps would be slow (since
 	// all<->all transforms aren't implemented, it'd have to decompress
 	// from S3TC first), and DDS images ought to include mipmaps!
-	else if(is_s3tc)
+	else if(is_compressed)
 		return ERR::FAIL;	// NOWARN
 	// image is uncompressed and we're on an old OpenGL implementation;
 	// we will generate mipmaps in software.
 	else
 	{
-		RETURN_STATUS_IF_ERR(t->transform_to(t->m_Flags|TEX_MIPMAPS));
+		RETURN_STATUS_IF_ERR(t->transform(t->m_glFormat, TEX_MIPMAPS));
 		*plevels_to_skip = 0;	// t contains mipmaps
 	}
 
@@ -868,22 +693,23 @@ static Status get_mipmaps(Tex* t, GLint filter, int q_flags, int* plevels_to_ski
 
 struct UploadParams
 {
+	GLenum type;
 	GLenum fmt;
 	GLint int_fmt;
 	u32* uploaded_size;
 };
 
-static void upload_level(size_t level, size_t level_w, size_t level_h, const u8* RESTRICT level_data, size_t level_data_size, void* RESTRICT cbData)
+static void upload_level(size_t level, size_t UNUSED(face), size_t level_w, size_t level_h, const u8* RESTRICT level_data, size_t level_data_size, void* RESTRICT cbData)
 {
 	const UploadParams* up = (const UploadParams*)cbData;
-	glTexImage2D(GL_TEXTURE_2D, (GLint)level, up->int_fmt, (GLsizei)level_w, (GLsizei)level_h, 0, up->fmt, GL_UNSIGNED_BYTE, level_data);
+	glTexImage2D(GL_TEXTURE_2D, (GLint)level, up->int_fmt, (GLsizei)level_w, (GLsizei)level_h, 0, up->fmt, up->type, level_data);
 	*up->uploaded_size += (u32)level_data_size;
 }
 
-static void upload_compressed_level(size_t level, size_t level_w, size_t level_h, const u8* RESTRICT level_data, size_t level_data_size, void* RESTRICT cbData)
+static void upload_compressed_level(size_t level, size_t UNUSED(face), size_t level_w, size_t level_h, const u8* RESTRICT level_data, size_t level_data_size, void* RESTRICT cbData)
 {
 	const UploadParams* up = (const UploadParams*)cbData;
-	pglCompressedTexImage2DARB(GL_TEXTURE_2D, (GLint)level, up->fmt, (GLsizei)level_w, (GLsizei)level_h, 0, (GLsizei)level_data_size, level_data);
+	pglCompressedTexImage2DARB(GL_TEXTURE_2D, (GLint)level, up->int_fmt, (GLsizei)level_w, (GLsizei)level_h, 0, (GLsizei)level_data_size, level_data);
 	*up->uploaded_size += (u32)level_data_size;
 }
 
@@ -891,20 +717,15 @@ static void upload_compressed_level(size_t level, size_t level_w, size_t level_h
 // split out of ogl_tex_upload because it was too big.
 //
 // pre: <t> is valid for OpenGL use; texture is bound.
-static void upload_impl(Tex* t, GLenum fmt, GLint int_fmt, int levels_to_skip, u32* uploaded_size)
+static void upload_impl(Tex* t, int levels_to_skip, u32* uploaded_size)
 {
-	const GLsizei w  = (GLsizei)t->m_Width;
-	const GLsizei h  = (GLsizei)t->m_Height;
-	const size_t bpp   = t->m_Bpp;
-	const u8* data = (const u8*)t->get_data();
-	const UploadParams up = { fmt, int_fmt, uploaded_size };
+	const UploadParams up = { (GLenum)t->m_glType, (GLenum)t->m_glFormat, (GLint)t->m_glInternalFormat, uploaded_size };
 
-	if(t->m_Flags & TEX_DXT)
-		tex_util_foreach_mipmap(w, h, bpp, data, levels_to_skip, 4, upload_compressed_level, (void*)&up);
+	if(t->m_glType)
+		tex_util_foreach_mipmap(t, levels_to_skip, upload_level, (void*)&up);
 	else
-		tex_util_foreach_mipmap(w, h, bpp, data, levels_to_skip, 1, upload_level, (void*)&up);
+		tex_util_foreach_mipmap(t, levels_to_skip, upload_compressed_level, (void*)&up);
 }
-
 
 // upload the texture to OpenGL.
 // if not 0, parameters override the following:
@@ -915,13 +736,12 @@ static void upload_impl(Tex* t, GLenum fmt, GLint int_fmt, int levels_to_skip, u
 // side effects:
 // - enables texturing on TMU 0 and binds the texture to it;
 // - frees the texel data! see ogl_tex_get_data.
-Status ogl_tex_upload(const Handle ht, GLenum fmt_ovr, int q_flags_ovr, GLint int_fmt_ovr)
+Status ogl_tex_upload(const Handle ht)
 {
 	ONCE(detect_gl_upload_caps());
 
 	H_DEREF(ht, OglTex, ot);
 	Tex* t = &ot->t;
-	ENSURE(q_flags_valid(q_flags_ovr));
 	// we don't bother verifying *fmt_ovr - there are too many values
 
 	// upload already happened; no work to do.
@@ -931,17 +751,6 @@ Status ogl_tex_upload(const Handle ht, GLenum fmt_ovr, int q_flags_ovr, GLint in
 
 	if(ot->flags & OT_TEX_VALID)
 	{
-		// decompress S3TC if that's not supported by OpenGL.
-		if((t->m_Flags & TEX_DXT) && !have_s3tc)
-			(void)t->transform_to(t->m_Flags & ~TEX_DXT);
-
-		// determine fmt and int_fmt, allowing for user override.
-		ot->fmt = choose_fmt(t->m_Bpp, t->m_Flags);
-		if(fmt_ovr) ot->fmt = fmt_ovr;
-		if(q_flags_ovr) ot->q_flags = q_flags_ovr;
-		ot->int_fmt = choose_int_fmt(ot->fmt, ot->q_flags);
-		if(int_fmt_ovr) ot->int_fmt = int_fmt_ovr;
-
 		ot->uploaded_size = 0;
 
 		// now actually send to OpenGL:
@@ -957,9 +766,18 @@ Status ogl_tex_upload(const Handle ht, GLenum fmt_ovr, int q_flags_ovr, GLint in
 			// (note: if first time, applies our defaults/previous overrides;
 			// otherwise, replays all state changes)
 			state_latch(&ot->state);
-			upload_impl(t, ot->fmt, ot->int_fmt, levels_to_skip, &ot->uploaded_size);
+			upload_impl(t, levels_to_skip, &ot->uploaded_size);
 		}
-		ogl_WarnIfError();
+
+		if (glGetError() != GL_NO_ERROR && !t->m_glType) {
+			// the texture is compressed and the GPU don't support it,
+			// let's try decompress it on the CPU
+			RETURN_STATUS_IF_ERR(t->transform(t->m_glFormat, t->m_Flags));
+
+			if (t->m_glType) // is it decompressed?
+				return ogl_tex_upload(ht);
+			ogl_WarnIfError();
+		}
 
 		ot->flags |= OT_IS_UPLOADED;
 
@@ -997,24 +815,17 @@ Status ogl_tex_get_size(Handle ht, size_t* w, size_t* h, size_t* bpp)
 	return INFO::OK;
 }
 
-
-// retrieve TexFlags and the corresponding OpenGL format.
-// the latter is determined during ogl_tex_upload and is 0 before that.
-// all params are optional and filled if non-NULL.
-Status ogl_tex_get_format(Handle ht, size_t* flags, GLenum* fmt)
+size_t ogl_tex_get_number_of_mimaps(Handle ht)
 {
 	H_DEREF(ht, OglTex, ot);
-
-	if(flags)
-		*flags = ot->t.m_Flags;
-	if(fmt)
-	{
-		ENSURE(ot->flags & OT_IS_UPLOADED);
-		*fmt = ot->fmt;
-	}
-	return INFO::OK;
+	return ot->t.m_numberOfMipmapLevels;
 }
 
+bool ogl_tex_has_alpha(Handle ht)
+{
+	H_DEREF(ht, OglTex, ot);
+	return ot->t.hasAlpha();
+}
 
 // retrieve pointer to texel data.
 //
@@ -1103,35 +914,6 @@ Status ogl_tex_get_texture_id(Handle ht, GLuint* id)
 	H_DEREF(ht, OglTex, ot);
 	*id = ot->id;
 	return INFO::OK;
-}
-
-// apply the specified transforms (as in tex_transform) to the image.
-// must be called before uploading (raises a warning if called afterwards).
-Status ogl_tex_transform(Handle ht, size_t transforms)
-{
-	H_DEREF(ht, OglTex, ot);
-	Status ret = ot->t.transform(transforms);
-	return ret;
-}
-
-
-// change the pixel format to that specified by <new_flags>.
-// (note: this is equivalent to ogl_tex_transform(ht, ht_flags^new_flags).
-Status ogl_tex_transform_to(Handle ht, size_t new_flags)
-{
-	H_DEREF(ht, OglTex, ot);
-	Status ret = ot->t.transform_to(new_flags);
-	return ret;
-}
-
-
-// return whether native S3TC support is available
-bool ogl_tex_has_s3tc()
-{
-	// ogl_tex_upload must be called before this
-	ENSURE(have_s3tc != -1);
-
-	return (have_s3tc != 0);
 }
 
 // return whether anisotropic filtering support is available
