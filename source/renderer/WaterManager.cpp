@@ -376,13 +376,25 @@ int WaterManager::LoadWaterTextures()
 void WaterManager::Resize()
 {
 	glBindTexture(GL_TEXTURE_2D, m_FancyTextureNormal);
+#if CONFIG2_GLES
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8_OES, (GLsizei)g_Renderer.GetWidth(), (GLsizei)g_Renderer.GetHeight(), 0,  GL_RGBA, GL_UNSIGNED_SHORT, NULL);
+#else
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)g_Renderer.GetWidth(), (GLsizei)g_Renderer.GetHeight(), 0,  GL_RGBA, GL_UNSIGNED_SHORT, NULL);
+#endif
 
 	glBindTexture(GL_TEXTURE_2D, m_FancyTextureOther);
+#if CONFIG2_GLES
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8_OES, (GLsizei)g_Renderer.GetWidth(), (GLsizei)g_Renderer.GetHeight(), 0,  GL_RGBA, GL_UNSIGNED_SHORT, NULL);
+#else
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)g_Renderer.GetWidth(), (GLsizei)g_Renderer.GetHeight(), 0,  GL_RGBA, GL_UNSIGNED_SHORT, NULL);
+#endif
 
 	glBindTexture(GL_TEXTURE_2D, m_FancyTextureDepth);
+#if CONFIG2_GLES
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32_OES, (GLsizei)g_Renderer.GetWidth(), (GLsizei)g_Renderer.GetHeight(), 0,  GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
+#else
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, (GLsizei)g_Renderer.GetWidth(), (GLsizei)g_Renderer.GetHeight(), 0,  GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
+#endif
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

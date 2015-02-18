@@ -372,11 +372,11 @@ public:
 				command += " -f RGB";
 		}
 
-		debug_printf(L"Executing %hs\n", command.c_str());
+		debug_printf("Executing %s\n", command.c_str());
 		int res = system(command.c_str());
 		ENSURE(res == 0);
 		Path ktxFile = inPath.ChangeExtension(".ktx");
-		debug_printf(L"Renaming %ls to %ls\n", ktxFile.string().c_str(), outPath.string().c_str());
+		debug_printf("Renaming %s to %s\n", ktxFile.string8().c_str(), outPath.string8().c_str());
 		res = rename(OsString(ktxFile).c_str(), OsString(outPath).c_str());
 		ENSURE(res == 0);
 		return true;
