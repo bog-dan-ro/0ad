@@ -55,7 +55,11 @@
 
 // this must come after GL/gl.h include, so we can't combine the
 // including GL/glext.h.
-#undef GL_GLEXT_PROTOTYPES
+#ifndef OS_ANDROID
+# undef GL_GLEXT_PROTOTYPES
+#else
+# define GL_GLEXT_PROTOTYPES
+#endif
 
 #if CONFIG2_GLES
 # include <GLES2/gl2ext.h>
