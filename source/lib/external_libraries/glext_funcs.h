@@ -106,10 +106,17 @@ actually supported).
 #define pglBufferSubDataARB glBufferSubData
 #define pglDeleteBuffersARB glDeleteBuffers
 #define pglGenBuffersARB glGenBuffers
-#define pglMapBufferARB glMapBuffer
-#define pglUnmapBufferARB glUnmapBuffer
 
+#if OS_ANDROID
+# define pglMapBufferARB glMapBufferOES
+# define pglUnmapBufferARB glUnmapBufferOES
+# define GL_WRITE_ONLY GL_WRITE_ONLY_OES
+#else
+# define pglMapBufferARB glMapBuffer
+# define pglUnmapBufferARB glUnmapBuffer
+#endif
 #define pglBindFramebufferEXT glBindFramebuffer
+
 #define pglCheckFramebufferStatusEXT glCheckFramebufferStatus
 #define pglDeleteFramebuffersEXT glDeleteFramebuffers
 #define pglFramebufferTexture2DEXT glFramebufferTexture2D
