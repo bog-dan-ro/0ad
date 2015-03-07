@@ -53,19 +53,13 @@ public class Activity extends SDLActivity {
             }
         }
 
-        int w,h;
-        if (Build.VERSION.SDK_INT < 13) {
-            Display d = getWindowManager().getDefaultDisplay();
-            w = d.getWidth();
-            h = d.getHeight();
-        } else {
-            DisplayMetrics metrics = new DisplayMetrics();
-            getWindowManager().getDefaultDisplay().getMetrics(metrics);
-            w = metrics.heightPixels;
-            h = metrics.widthPixels;
-        }
-        Native.setenv("ANDROID_SCREEN_WIDTH", Integer.toString(w), true);
-        Native.setenv("ANDROID_SCREEN_HEIGHT", Integer.toString(h), true);
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        Native.setenv("ANDROID_SCREEN_WIDTH", Integer.toString(metrics.widthPixels), true);
+        Native.setenv("ANDROID_SCREEN_HEIGHT", Integer.toString(metrics.heightPixels), true);
+        Native.setenv("ANDROID_SCREEN_DPI", Integer.toString(metrics.densityDpi), true);
+        Native.setenv("ANDROID_SCREEN_XDPI", Float.toString(metrics.xdpi), true);
+        Native.setenv("ANDROID_SCREEN_YDPI", Float.toString(metrics.ydpi), true);
 
         Native.setenv("HOME", getPath(getFilesDir()), true);
         Native.setenv("CACHE_DIR", getPath(getCacheDir()), true);

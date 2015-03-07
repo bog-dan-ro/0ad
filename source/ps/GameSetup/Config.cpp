@@ -56,7 +56,11 @@ float g_Gamma = 1.0f;
 CStr g_RenderPath = "default";
 
 int g_xres, g_yres;
+#if OS_ANDROID
+float g_GuiScale = 0.5f;
+#else
 float g_GuiScale = 1.0f;
+#endif
 bool g_VSync = false;
 
 bool g_Quickstart = false;
@@ -83,6 +87,18 @@ CStr g_AutostartMap = "";
 // Fill in the globals from the config files.
 static void LoadGlobals()
 {
+#if OS_ANDROID
+	// use ANDROID_SCREEN_DPI instead of ANDROID_SCREEN_XDPI because XDPI
+	// might be uninitialized on some devices.
+	// 160 is the "default" DPI on Android and is quite close to modern monitors DPIs
+	g_GuiScale = 160.0f / atoi(getenv("ANDROID_SCREEN_DPI"));
+	float h = g_GuiScale * atoi(getenv("ANDROID_SCREEN_HEIGHT"));
+
+	// 768 seems to be the minimum height needed by 0 A.D.
+	if (h < 768.0)
+		g_GuiScale = 768.0 / atoi(getenv("ANDROID_SCREEN_HEIGHT"));
+#endif
+
 	CFG_GET_VAL("vsync", g_VSync);
 
 	CFG_GET_VAL("nos3tc", g_NoGLS3TC);
