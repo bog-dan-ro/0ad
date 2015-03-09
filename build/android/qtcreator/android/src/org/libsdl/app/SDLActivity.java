@@ -1,26 +1,42 @@
 package org.libsdl.app;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
-import android.app.*;
-import android.content.*;
-import android.view.*;
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.PixelFormat;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.Display;
+import android.view.InputDevice;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsoluteLayout;
-import android.net.*;
-import android.os.*;
-import android.util.Log;
-import android.graphics.*;
-import android.media.*;
-import android.hardware.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 
 /**
@@ -64,6 +80,24 @@ public class SDLActivity extends Activity {
 
     protected boolean prepareOnCreate(Bundle savedInstanceState)
     {
+        SDLActivity.initialize();
+        // So we can call stuff from static callbacks
+        mSingleton = this;
+
+        // Set up the surface
+        mSurface = new SDLSurface(getApplication());
+
+        if(Build.VERSION.SDK_INT >= 12) {
+            mJoystickHandler = new SDLJoystickHandler_API12();
+        }
+        else {
+            mJoystickHandler = new SDLJoystickHandler();
+        }
+
+        mLayout = new AbsoluteLayout(this);
+        mLayout.addView(mSurface);
+
+        setContentView(mLayout);
         return true;
     }
 
@@ -76,25 +110,6 @@ public class SDLActivity extends Activity {
             finish();
             return;
         }
-
-        SDLActivity.initialize();
-        // So we can call stuff from static callbacks
-        mSingleton = this;
-
-        // Set up the surface
-        mSurface = new SDLSurface(getApplication());
-        
-        if(Build.VERSION.SDK_INT >= 12) {
-            mJoystickHandler = new SDLJoystickHandler_API12();
-        }
-        else {
-            mJoystickHandler = new SDLJoystickHandler();
-        }
-
-        mLayout = new AbsoluteLayout(this);
-        mLayout.addView(mSurface);
-
-        setContentView(mLayout);
     }
 
     // Events

@@ -5,8 +5,9 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.storage.OnObbStateChangeListener;
+import android.os.storage.StorageManager;
 import android.util.DisplayMetrics;
-import android.view.Display;
 import android.view.View;
 
 import org.libsdl.app.SDLActivity;
@@ -26,7 +27,7 @@ public class Activity extends SDLActivity {
     }
 
     @Override
-    protected boolean prepareOnCreate(Bundle savedInstanceState) {
+    protected boolean prepareOnCreate(final Bundle savedInstanceState) {
         hide();
         if (null == savedInstanceState) {
             try {
@@ -67,7 +68,46 @@ public class Activity extends SDLActivity {
         Native.setenv("EXTERNAL_CACHE_DIR", getPath(getExternalCacheDir()), true);
         Native.setenv("EXTERNAL_STORAGE_DIR", getPath(Environment.getExternalStorageDirectory()), true);
 
-        return super.prepareOnCreate(savedInstanceState);
+        try {
+            final int obbVersionCode = 3;
+            final String obbFile = Environment.getExternalStorageDirectory() + "/Android/obb/" + getPackageName() + "/"
+                    + "main." + obbVersionCode + "." + getPackageName() + ".obb";
+            if (new File(obbFile).isFile()) {
+                final StorageManager sm = (StorageManager) getSystemService(STORAGE_SERVICE);
+                final Runnable mount = new Runnable() {
+                    @Override
+                    public void run() {
+                        sm.mountObb(obbFile, null, new OnObbStateChangeListener() {
+                            @Override
+                            public void onObbStateChange(String path, int state) {
+                                if (state == MOUNTED)
+                                    Native.setenv("OBB_MAIN_FILE", sm.getMountedObbPath(path), true);
+                                else
+                                    QtCreatorDebugger.debugLog("Obb mounted failed status =" + state);
+                                Activity.super.prepareOnCreate(savedInstanceState);
+                            }
+                        });
+                    }
+                };
+                if (sm.isObbMounted(obbFile)) {
+                    sm.unmountObb(obbFile, true, new OnObbStateChangeListener() {
+                        @Override
+                        public void onObbStateChange(String path, int state) {
+                            mount.run();
+                        }
+                    });
+                } else {
+                    mount.run();
+                }
+            } else {
+                QtCreatorDebugger.debugLog("Can't find obb file " + obbFile);
+                return Activity.super.prepareOnCreate(savedInstanceState);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     public void hide() {

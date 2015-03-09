@@ -21,7 +21,7 @@ public class QtCreatorDebugger {
         this.TAG =TAG;
     }
 
-    private String TAG = "QtCreator";
+    private static String TAG = "QtCreator";
 
     private Process m_debuggerProcess = null; // debugger process
 
@@ -29,8 +29,7 @@ public class QtCreatorDebugger {
         try {
             Bundle extras = activity.getIntent().getExtras();
 
-            if ( /*(ai.flags&ApplicationInfo.FLAG_DEBUGGABLE) != 0
-                        &&*/ extras.containsKey("debug_ping")
+            if ( extras!= null && extras.containsKey("debug_ping")
                     && extras.getString("debug_ping").equals("true")) {
                 try {
                     debugLog("extra parameters: " + extras);
@@ -182,7 +181,7 @@ public class QtCreatorDebugger {
             m_debuggerProcess.destroy();
     }
 
-    private void debugLog(String msg)
+    public static void debugLog(String msg)
     {
         Log.i(TAG, "DEBUGGER: " + msg);
     }

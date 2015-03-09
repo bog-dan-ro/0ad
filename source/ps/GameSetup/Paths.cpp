@@ -36,7 +36,7 @@ Paths::Paths(const CmdLineArgs& args)
 
 	m_rdata = RootData(args.GetArg0());
 
-	const char* subdirectoryName = args.Has("writableRoot")? 0 : "0ad";
+	const char* subdirectoryName = args.Has("writableRoot") ? 0 : "0ad";
 
 	if(!subdirectoryName)
 	{
@@ -44,23 +44,47 @@ Paths::Paths(const CmdLineArgs& args)
 		//	all the data is a subdirectory of the root
 		m_gameData = m_rdata;
 		m_userData = m_gameData;
-		m_config = m_gameData / "config"/"";
-		m_cache = m_gameData / "cache"/"";
-		m_logs = m_root / "logs"/"";
+		m_config = m_gameData / "config" / "";
+		m_cache = m_gameData / "cache" / "";
+		m_logs = m_root / "logs" / "";
 	}
 	else // OS-specific path handling
 	{
-
 #if OS_ANDROID
+		const char *obbMainFile = getenv("OBB_MAIN_FILE");
+		// Is the OBB file is mounted ?
+		if (obbMainFile) {
+			// we are in production mode!
+			m_rdata = m_gameData = obbMainFile;
 
-		const OsPath appdata = OsPath("/sdcard/0ad/appdata");
+			// put the saves, logs, screenshots, and user mods in a world
+			// readable location.
+			const OsPath externalAppData = getenv("EXTERNAL_DIR");
+			m_userData = externalAppData;
 
-		// We don't make the game vs. user data distinction on Android
-		m_gameData = appdata/"data"/"";
-		m_userData = m_gameData;
-		m_config = appdata/"config"/"";
-		m_cache = appdata/"cache"/"";
-		m_logs = appdata/"logs"/"";
+			m_logs = externalAppData / "logs" / "";
+
+			// config contains sensible user info (e.g. passwords)
+			// and it must be placed in a safe location
+			const OsPath homePath = getenv("HOME");
+
+			m_root = homePath;
+			m_config = homePath / "config" /"";
+
+			// allow the user to purge non-ciritcal file to make space
+			// though on Android this folder is empty
+			m_cache = OsPath(getenv("CACHE_DIR")) / "cache" / "";
+
+		} else {
+			// debug mode
+			const OsPath appdata = OsPath("/sdcard/0ad/appdata");
+			// We don't make the game vs. user data distinction on Android
+			m_gameData = appdata / "data" / "";
+			m_userData = m_gameData;
+			m_config = appdata / "config" / "";
+			m_cache = appdata / "cache" / "";
+			m_logs = appdata / "logs" / "";
+		}
 
 #elif OS_WIN
 
