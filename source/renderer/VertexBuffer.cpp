@@ -28,8 +28,8 @@
 #include "VertexBufferManager.h"
 #include "ps/CLogger.h"
 
-// 64 bytes per vertex in InstancingModelRenderer).
-#define MAX_VB_SIZE_BYTES		(4*1024*1024)
+// 32 bytes per vertex in ShaderModelRenderer).
+#define MAX_VB_SIZE_BYTES		(2*1024*1024)
 CVertexBuffer::CVertexBuffer(size_t vertexSize, GLenum usage, GLenum target)
 	: m_VertexSize(vertexSize), m_Handle(0), m_SysMem(0), m_Usage(usage), m_Target(target)
 {
@@ -250,4 +250,3 @@ void CVertexBuffer::DumpStatus()
 	}
 	debug_printf("max size = %d\n", (int)maxSize);
 }
-
