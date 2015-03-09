@@ -104,7 +104,6 @@ void ParticleRenderer::PrepareForRendering(const CShaderDefines& context)
 		{
 			CParticleEmitter* emitter = m->emitters[cullGroup][i];
 			emitter->UpdateArrayData(m->frameNumber);
-			emitter->PrepareForRendering();
 		}
 	}
 

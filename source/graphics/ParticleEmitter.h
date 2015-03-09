@@ -114,11 +114,6 @@ public:
 	void UpdateArrayData(int frameNumber);
 
 	/**
-	 * Make the vertex data available for subsequent binding and rendering.
-	 */
-	void PrepareForRendering();
-
-	/**
 	 * Bind rendering state (textures and blend modes).
 	 */
 	void Bind(const CShaderProgramPtr& shader);
